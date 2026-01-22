@@ -513,11 +513,11 @@ function cf7_get_table_rows_combined() {
         color: #1e293b !important; 
     } 
     
-    .filter-tab.active { 
-        background: #3b82f6 !important; 
-        color: #ffffff !important; 
-        border-color: #2563eb !important; 
-        box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3) !important; 
+    .filter-tab.active {
+        background: #0064E0 !important;
+        color: #ffffff !important;
+        border-color: #0064E0 !important;
+        box-shadow: 0 4px 10px rgba(0, 100, 224, 0.3) !important;
     } 
     
     /* Tinh chỉnh riêng cho nút Tìm kiếm để dính liền input */ 
@@ -533,7 +533,7 @@ function cf7_get_table_rows_combined() {
     
     #btn_cf7_search_exec { 
         border-radius: 0 10px 10px 0 !important; 
-        background: #1e293b !important; 
+        background: #0064E0 !important; 
         color: #fff !important; 
         border: none !important; 
         cursor: pointer !important; 
@@ -541,17 +541,23 @@ function cf7_get_table_rows_combined() {
     
     /* Nút Thêm Học Viên Pro */ 
     button[onclick*="cf7_open_student_modal"] { 
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important; 
+        background: #0064E0 !important; 
         color: #fff !important; 
         border: none !important; 
         font-weight: 700 !important; 
+        transition: all 0.3s ease !important;
+    }
+    button[onclick*="cf7_open_student_modal"]:hover {
+        background: #0056b3 !important;
+        box-shadow: 0 4px 10px rgba(0, 100, 224, 0.3) !important;
     } 
     
     /* --- 3. ANALYTICS DASHBOARD (PHẦN DƯỚI CÙNG) --- */ 
     .quan-ly-summary td { 
-        background: #ffffff !important; 
-        border-top: 3px solid #3b82f6 !important; 
+        background: #0064E0 !important; 
+        border-top: 3px solid #0056b3 !important; 
         padding: 40px !important; 
+        color: #fff !important;
     } 
     
     .analytics-grid { 
@@ -601,7 +607,7 @@ function cf7_get_table_rows_combined() {
     $output .= "<div style='display:flex; align-items:center; gap:12px;'>";
     
     // ✅ Nút Thêm học viên
-    $output .= "<button type='button' onclick='cf7_open_student_modal()' style='padding:8px 16px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; transition:all 0.3s;' onmouseover='this.style.transform=\"scale(1.05)\"' onmouseout='this.style.transform=\"scale(1)\"'>➕ Thêm Học Viên</button>";
+    $output .= "<button type='button' onclick='cf7_open_student_modal()' style='padding:8px 16px; background:#0064E0; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; transition:all 0.3s;' onmouseover='this.style.transform=\"scale(1.05)\"; this.style.background=\"#0056b3\"' onmouseout='this.style.transform=\"scale(1)\"; this.style.background=\"#0064E0\"'>➕ Thêm Học Viên</button>";
     
     // --- TOOLBAR: DATE PICKER ---
     $output .= "<div class='quan-ly-datepicker'><input type='date' id='cf7_filter_date' value='".esc_attr($filter_date)."' onchange='cf7_exec_combined_filter()' style='padding:6px 10px; border:1px solid #d0e6ff; border-radius:999px; font-size:13px; outline:none; background:#f4f8ff;'></div>";
@@ -640,7 +646,7 @@ function cf7_get_table_rows_combined() {
     // SEARCH BOX (Chống submit CF7)
     $output .= "<div class='quan-ly-search-box' style='display:flex; align-items:center; border:1px solid #e1e8ed; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.08);'>
         <input type='text' id='cf7_search_input' placeholder='🔍 Tìm tên học viên...' value='".esc_attr($search_name)."' style='border:none; padding:10px 16px; outline:none; font-size:14px; width:200px; height:40px; background:transparent;'>
-        <button type='button' id='btn_cf7_search_exec' style='background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; padding:0 20px; cursor:pointer; font-size:13px; font-weight:600; height:40px;'>Tìm kiếm</button>
+        <button type='button' id='btn_cf7_search_exec' style='background:#0064E0; color:#fff; border:none; padding:0 20px; cursor:pointer; font-size:13px; font-weight:600; height:40px;'>Tìm kiếm</button>
         <script>
             (function($){ $(document).ready(function(){
                 function do_s(e){ if(e) e.preventDefault(); var v=$('#cf7_search_input').val(); var u=new URL(window.location.href); if(v) u.searchParams.set('cf7_s',v); else u.searchParams.delete('cf7_s'); u.searchParams.delete('cf7_page'); window.location.href=u.href; return false; }
@@ -785,7 +791,7 @@ function cf7_get_table_rows_combined() {
             
             // ✅ Cột Thao tác: Nút Sửa
             $output .= "<td style='vertical-align: middle; text-align: center; white-space:nowrap;'>";
-            $output .= "<button type='button' onclick='cf7_edit_student(" . intval($row->id) . ")' style='padding: 0 12px; background:#3498db; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; height: 34px; line-height: 34px; vertical-align: middle; margin: 0; display: inline-block; box-sizing: border-box;'>✏️ Sửa</button>";
+            $output .= "<button type='button' onclick='cf7_edit_student(" . intval($row->id) . ")' style='padding: 0 12px; background:#0064E0; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; height: 34px; line-height: 34px; vertical-align: middle; margin: 0; display: inline-block; box-sizing: border-box; transition: all 0.3s ease;' onmouseover='this.style.background=\"#0056b3\"' onmouseout='this.style.background=\"#0064E0\"'>✏️ Sửa</button>";
             $output .= "</td>";
             
             $output .= "</tr>";
@@ -799,7 +805,7 @@ function cf7_get_table_rows_combined() {
             // Nút Previous
             if ($current_page > 1) {
                 $prev_url = add_query_arg('cf7_page', $current_page - 1, $base_url);
-                $output .= "<a href='" . esc_url($prev_url) . "' style='padding:8px 16px; background:#3498db; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#2980b9\"' onmouseout='this.style.background=\"#3498db\"'>‹ Trước</a>";
+                $output .= "<a href='" . esc_url($prev_url) . "' style='padding:8px 16px; background:#0064E0; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#0056b3\"' onmouseout='this.style.background=\"#0064E0\"'>‹ Trước</a>";
             } else {
                 $output .= "<span style='padding:8px 16px; background:#ecf0f1; color:#95a5a6; border-radius:6px; cursor:not-allowed;'>‹ Trước</span>";
             }
@@ -810,7 +816,7 @@ function cf7_get_table_rows_combined() {
             
             if ($start_page > 1) {
                 $first_url = add_query_arg('cf7_page', 1, $base_url);
-                $output .= "<a href='" . esc_url($first_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600;'>1</a>";
+                $output .= "<a href='" . esc_url($first_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#0064E0\"; this.style.color=\"#0064E0\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>1</a>";
                 if ($start_page > 2) {
                     $output .= "<span style='padding:8px 4px; color:#7f8c8d;'>...</span>";
                 }
@@ -818,10 +824,10 @@ function cf7_get_table_rows_combined() {
             
             for ($i = $start_page; $i <= $end_page; $i++) {
                 if ($i == $current_page) {
-                    $output .= "<span style='padding:8px 12px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border-radius:6px; font-weight:700;'>" . $i . "</span>";
+                    $output .= "<span style='padding:8px 12px; background:#0064E0 !important; color:#fff !important; border-radius:6px; font-weight:700;'>" . $i . "</span>";
                 } else {
                     $page_url = add_query_arg('cf7_page', $i, $base_url);
-                    $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#3498db\"; this.style.color=\"#3498db\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
+                    $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#0064E0\"; this.style.color=\"#0064E0\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
                 }
             }
             
@@ -830,13 +836,13 @@ function cf7_get_table_rows_combined() {
                     $output .= "<span style='padding:8px 4px; color:#7f8c8d;'>...</span>";
                 }
                 $last_url = add_query_arg('cf7_page', $total_pages, $base_url);
-                $output .= "<a href='" . esc_url($last_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600;'>" . $total_pages . "</a>";
+                $output .= "<a href='" . esc_url($last_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#0064E0\"; this.style.color=\"#0064E0\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $total_pages . "</a>";
             }
             
             // Nút Next
             if ($current_page < $total_pages) {
                 $next_url = add_query_arg('cf7_page', $current_page + 1, $base_url);
-                $output .= "<a href='" . esc_url($next_url) . "' style='padding:8px 16px; background:#3498db; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#2980b9\"' onmouseout='this.style.background=\"#3498db\"'>Sau ›</a>";
+                $output .= "<a href='" . esc_url($next_url) . "' style='padding:8px 16px; background:#0064E0; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#0056b3\"' onmouseout='this.style.background=\"#0064E0\"'>Sau ›</a>";
             } else {
                 $output .= "<span style='padding:8px 16px; background:#ecf0f1; color:#95a5a6; border-radius:6px; cursor:not-allowed;'>Sau ›</span>";
             }
@@ -930,7 +936,7 @@ function cf7_student_modal_html() {
                 </div>
                 <div style="display:flex; gap:10px; justify-content:flex-end;">
                     <button type="button" onclick="cf7_close_student_modal()" style="padding:10px 20px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Hủy</button>
-                    <button type="submit" style="padding:10px 20px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
+                    <button type="submit" style="padding:10px 20px; background:#0064E0; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; transition:all 0.3s;" onmouseover="this.style.background=\'#0056b3\'" onmouseout="this.style.background=\'#0064E0\'">Lưu</button>
                 </div>
             </form>
         </div>

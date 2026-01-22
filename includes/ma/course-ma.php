@@ -306,7 +306,7 @@ function cf7_display_course_add_button($atts) {
     }
     
     return '<div class="course-action-bar" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-        <button type="button" class="btn-add-course" onclick="cf7_open_course_modal()" style="padding:10px 20px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">➕ Thêm Khóa Học</button>
+        <button type="button" class="btn-add-course" onclick="cf7_open_course_modal()" style="padding:10px 20px; background:#0064E0; color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; transition:all 0.3s;" onmouseover="this.style.background=\'#0056b3\'; this.style.transform=\'scale(1.05)\'" onmouseout="this.style.background=\'#0064E0\'; this.style.transform=\'scale(1)\'">➕ Thêm Khóa Học</button>
     </div>';
 }
 
@@ -493,7 +493,7 @@ function cf7_display_course_table_row($atts) {
         
         // Cột thao tác
         $output .= '<td style="white-space:nowrap;">';
-        $output .= '<button type="button" onclick="cf7_edit_course(\'' . esc_js($course_key) . '\')" style="padding:6px 12px; margin-right:5px; background:#3498db; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600;">✏️ Sửa</button>';
+        $output .= '<button type="button" onclick="cf7_edit_course(\'' . esc_js($course_key) . '\')" style="padding:6px 12px; margin-right:5px; background:#0064E0; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; transition:all 0.3s;" onmouseover="this.style.background=\'#0056b3\'" onmouseout="this.style.background=\'#0064E0\'">✏️ Sửa</button>';
         
         if ($has_students) {
             $output .= '<button type="button" disabled title="Không thể xóa vì đã có học viên" style="padding:6px 12px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:not-allowed; font-size:12px; font-weight:600; opacity:0.6;">🗑️ Xóa</button>';
@@ -517,7 +517,7 @@ function cf7_display_course_table_row($atts) {
         // Nút Previous
         if ($current_page > 1) {
             $prev_url = add_query_arg('cf7_course_page', $current_page - 1, $base_url);
-            $output .= "<a href='" . esc_url($prev_url) . "' style='padding:8px 16px; background:#3498db; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#2980b9\"' onmouseout='this.style.background=\"#3498db\"'>‹ Trước</a>";
+            $output .= "<a href='" . esc_url($prev_url) . "' style='padding:8px 16px; background:#0064E0; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#0056b3\"' onmouseout='this.style.background=\"#0064E0\"'>‹ Trước</a>";
         } else {
             $output .= "<span style='padding:8px 16px; background:#ecf0f1; color:#95a5a6; border-radius:6px; cursor:not-allowed;'>‹ Trước</span>";
         }
@@ -536,10 +536,10 @@ function cf7_display_course_table_row($atts) {
         
         for ($i = $start_page; $i <= $end_page; $i++) {
             if ($i == $current_page) {
-            $output .= "<span style='padding:8px 12px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border-radius:6px; font-weight:700;'>" . $i . "</span>";
+            $output .= "<span style='padding:8px 12px; background:#0064E0 !important; color:#fff !important; border-radius:6px; font-weight:700;'>" . $i . "</span>";
         } else {
             $page_url = add_query_arg('cf7_course_page', $i, $base_url);
-            $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#3498db\"; this.style.color=\"#3498db\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
+            $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#0064E0\"; this.style.color=\"#0064E0\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
         }
         }
         
@@ -554,7 +554,7 @@ function cf7_display_course_table_row($atts) {
         // Nút Next
         if ($current_page < $total_pages) {
             $next_url = add_query_arg('cf7_course_page', $current_page + 1, $base_url);
-            $output .= "<a href='" . esc_url($next_url) . "' style='padding:8px 16px; background:#3498db; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#2980b9\"' onmouseout='this.style.background=\"#3498db\"'>Sau ›</a>";
+            $output .= "<a href='" . esc_url($next_url) . "' style='padding:8px 16px; background:#0064E0; color:#fff; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.background=\"#0056b3\"' onmouseout='this.style.background=\"#0064E0\"'>Sau ›</a>";
         } else {
             $output .= "<span style='padding:8px 16px; background:#ecf0f1; color:#95a5a6; border-radius:6px; cursor:not-allowed;'>Sau ›</span>";
         }
@@ -607,7 +607,7 @@ function cf7_course_modal_html() {
                 </div>
                 <div style="display:flex; gap:10px; justify-content:flex-end;">
                     <button type="button" onclick="cf7_close_course_modal()" style="padding:10px 20px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Hủy</button>
-                    <button type="submit" style="padding:10px 20px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
+                    <button type="submit" style="padding:10px 20px; background:#0064E0; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; transition:all 0.3s;" onmouseover="this.style.background=\'#0056b3\'" onmouseout="this.style.background=\'#0064E0\'">Lưu</button>
                 </div>
             </form>
         </div>
