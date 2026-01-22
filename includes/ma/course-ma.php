@@ -34,7 +34,6 @@ function cf7_handle_course_create() {
     $course_key = sanitize_title($course_key);
     $course_name = isset($_POST['course_name']) ? sanitize_text_field($_POST['course_name']) : '';
     $price = isset($_POST['price']) ? floatval($_POST['price']) : 0;
-    $teacher = isset($_POST['teacher']) ? sanitize_text_field($_POST['teacher']) : '';
     $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
     $end_date = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
     $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
@@ -56,20 +55,8 @@ function cf7_handle_course_create() {
         wp_send_json_error(['message' => 'Mã khóa học đã tồn tại.']);
     }
     
-    // Tính toán duration từ start_date và end_date
-    $duration = '';
-    if (!empty($start_date) && !empty($end_date)) {
-        $start = new DateTime($start_date);
-        $end = new DateTime($end_date);
-        $diff = $start->diff($end);
-        $months = ($diff->y * 12) + $diff->m;
-        if ($months > 0) {
-            $duration = $months . ' tháng';
-        } else {
-            $days = $diff->days;
-            $duration = $days . ' ngày';
-        }
-    }
+    // Lấy duration (số buổi) nhập thủ công
+    $duration = isset($_POST['duration']) ? sanitize_text_field($_POST['duration']) : '';
     
     // ✅ FIX: Tạo schedules từ start_date và end_date
     $schedules = [];
@@ -84,7 +71,6 @@ function cf7_handle_course_create() {
         'course_key' => $course_key,
         'course_name' => $course_name,
         'price' => $price,
-        'teacher' => $teacher,
         'duration' => $duration,
         'start_date' => $start_date,
         'end_date' => $end_date,
@@ -117,7 +103,6 @@ function cf7_handle_course_update() {
     $course_key = sanitize_title($course_key);
     $course_name = isset($_POST['course_name']) ? sanitize_text_field($_POST['course_name']) : '';
     $price = isset($_POST['price']) ? floatval($_POST['price']) : 0;
-    $teacher = isset($_POST['teacher']) ? sanitize_text_field($_POST['teacher']) : '';
     $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
     $end_date = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
     $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
@@ -141,20 +126,8 @@ function cf7_handle_course_update() {
     
     $old_data = json_decode($old_course->data, true);
     
-    // Tính toán duration
-    $duration = '';
-    if (!empty($start_date) && !empty($end_date)) {
-        $start = new DateTime($start_date);
-        $end = new DateTime($end_date);
-        $diff = $start->diff($end);
-        $months = ($diff->y * 12) + $diff->m;
-        if ($months > 0) {
-            $duration = $months . ' tháng';
-        } else {
-            $days = $diff->days;
-            $duration = $days . ' ngày';
-        }
-    }
+    // Lấy duration (số buổi) nhập thủ công
+    $duration = isset($_POST['duration']) ? sanitize_text_field($_POST['duration']) : '';
     
     // ✅ FIX: Cập nhật schedules khi start_date hoặc end_date thay đổi
     $old_schedules = $old_data['schedules'] ?? [];
@@ -181,7 +154,6 @@ function cf7_handle_course_update() {
         'course_key' => $course_key,
         'course_name' => $course_name,
         'price' => $price,
-        'teacher' => $teacher,
         'duration' => $duration,
         'start_date' => $start_date,
         'end_date' => $end_date,
@@ -334,7 +306,7 @@ function cf7_display_course_add_button($atts) {
     }
     
     return '<div class="course-action-bar" style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
-        <button type="button" class="btn-add-course" onclick="cf7_open_course_modal()" style="padding:10px 20px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">➕ Thêm Khóa Học</button>
+        <button type="button" class="btn-add-course" onclick="cf7_open_course_modal()" style="padding:10px 20px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px; transition:all 0.3s;" onmouseover="this.style.transform=\'scale(1.05)\'" onmouseout="this.style.transform=\'scale(1)\'">➕ Thêm Khóa Học</button>
     </div>';
 }
 
@@ -564,11 +536,11 @@ function cf7_display_course_table_row($atts) {
         
         for ($i = $start_page; $i <= $end_page; $i++) {
             if ($i == $current_page) {
-                $output .= "<span style='padding:8px 12px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border-radius:6px; font-weight:700;'>" . $i . "</span>";
-            } else {
-                $page_url = add_query_arg('cf7_course_page', $i, $base_url);
-                $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#667eea\"; this.style.color=\"#667eea\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
-            }
+            $output .= "<span style='padding:8px 12px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border-radius:6px; font-weight:700;'>" . $i . "</span>";
+        } else {
+            $page_url = add_query_arg('cf7_course_page', $i, $base_url);
+            $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#3498db\"; this.style.color=\"#3498db\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
+        }
         }
         
         if ($end_page < $total_pages) {
@@ -618,8 +590,8 @@ function cf7_course_modal_html() {
                     <input type="number" id="cf7-course-price" required min="0" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                 </div>
                 <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Giảng viên *</label>
-                    <input type="text" id="cf7-course-teacher" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Số buổi học (tùy chọn)</label>
+                    <input type="text" id="cf7-course-duration" placeholder="Ví dụ: 10 buổi, 12 buổi..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                 </div>
                 <div style="margin-bottom:15px;">
                     <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Ngày bắt đầu *</label>
@@ -635,7 +607,7 @@ function cf7_course_modal_html() {
                 </div>
                 <div style="display:flex; gap:10px; justify-content:flex-end;">
                     <button type="button" onclick="cf7_close_course_modal()" style="padding:10px 20px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Hủy</button>
-                    <button type="submit" style="padding:10px 20px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
+                    <button type="submit" style="padding:10px 20px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
                 </div>
             </form>
         </div>
@@ -719,7 +691,7 @@ function cf7_course_js() {
                         document.getElementById("cf7-course-key").value = course.course_key || courseKey;
                         document.getElementById("cf7-course-name").value = course.course_name || "";
                         document.getElementById("cf7-course-price").value = course.price || 0;
-                        document.getElementById("cf7-course-teacher").value = course.teacher || "";
+                        document.getElementById("cf7-course-duration").value = course.duration || "";
                         document.getElementById("cf7-course-start-date").value = course.start_date || "";
                         document.getElementById("cf7-course-end-date").value = course.end_date || "";
                         document.getElementById("cf7-course-description").value = course.description || "";
@@ -868,7 +840,7 @@ function cf7_course_js() {
             
             var courseName = document.getElementById("cf7-course-name").value.trim();
             var price = document.getElementById("cf7-course-price").value || 0;
-            var teacher = document.getElementById("cf7-course-teacher").value.trim();
+            var duration = document.getElementById("cf7-course-duration").value.trim();
             var startDate = document.getElementById("cf7-course-start-date").value;
             var endDate = document.getElementById("cf7-course-end-date").value;
             var description = document.getElementById("cf7-course-description").value || "";
@@ -877,13 +849,12 @@ function cf7_course_js() {
                 courseKey: courseKey,
                 courseName: courseName,
                 price: price,
-                teacher: teacher,
                 startDate: startDate,
                 endDate: endDate
             });
             
             // Validate
-            if (!courseKey || !courseName || !teacher || !startDate || !endDate) {
+            if (!courseKey || !courseName || !startDate || !endDate) {
                 console.error("❌ Validation failed");
                 alert("Vui lòng điền đầy đủ thông tin bắt buộc.");
                 return false;
@@ -897,7 +868,7 @@ function cf7_course_js() {
             formData.append("course_key", courseKey);
             formData.append("course_name", courseName);
             formData.append("price", price);
-            formData.append("teacher", teacher);
+            formData.append("duration", duration);
             formData.append("start_date", startDate);
             formData.append("end_date", endDate);
             formData.append("description", description);

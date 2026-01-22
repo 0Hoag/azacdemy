@@ -10,9 +10,11 @@ define('CF7_TELE_PATH', plugin_dir_path(__FILE__));
 
 // Import các thành phần
 require_once CF7_TELE_PATH . 'includes/database.php';
-require_once CF7_TELE_PATH . 'includes/submission.php';
-require_once CF7_TELE_PATH . 'includes/student-ma.php';
-require_once CF7_TELE_PATH . 'includes/course-ma.php';
+require_once CF7_TELE_PATH . 'includes/sales-statistics.php';
+require_once CF7_TELE_PATH . 'includes/home/submission.php';
+require_once CF7_TELE_PATH . 'includes/home/outstanding-course.php';
+require_once CF7_TELE_PATH . 'includes/ma/student-ma.php';
+require_once CF7_TELE_PATH . 'includes/ma/course-ma.php';
 
 // Kích hoạt tạo bảng khi plugin được activate
 register_activation_hook(__FILE__, 'cf7_registration_data');

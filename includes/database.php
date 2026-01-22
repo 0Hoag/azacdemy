@@ -52,10 +52,10 @@ function cf7_registration_data() {
                     'course_key' => 'facebook-ads',
                     'data' => [
                         'course_name' => 'Khóa học Facebook Ads',
+                        'content' => 'Bạn không cần phải là dân marketing, chỉ cần có sản phẩm và mong muốn bán được hàng. Khóa học Facebook Ads giúp bạn biết cách chạy quảng cáo đúng tệp khách, đúng thông điệp, đúng ngân sách để mỗi đồng bỏ ra đều mang lại đơn hàng thật.',
                         'price' => 4900000,
                         'original_price' => 8600000,
-                        'teacher' => 'Expert A',
-                        'duration' => '1 tháng',
+                        'duration' => '12 buổi',
                         'start_date' => $m1_start,
                         'end_date' => $m1_end
                     ]
@@ -65,10 +65,10 @@ function cf7_registration_data() {
                     'course_key' => 'google-ads',
                     'data' => [
                         'course_name' => 'Khóa học Google Ads',
+                        'content' => 'Khi khách chủ động tìm bạn trên Google, nhiệm vụ của bạn chỉ là xuất hiện đúng lúc. Khóa học Google Ads giúp bạn đưa sản phẩm lên top tìm kiếm, tiếp cận đúng người đang cần mua – và biến lượt tìm kiếm thành lượt bán.',
                         'price' => 4900000,
                         'original_price' => 8400000,
-                        'teacher' => 'Expert B',
-                        'duration' => '1 tháng',
+                        'duration' => '12 buổi',
                         'start_date' => $m2_start,
                         'end_date' => $m2_end
                     ]
@@ -78,10 +78,10 @@ function cf7_registration_data() {
                     'course_key' => 'tiktok-ads',
                     'data' => [
                         'course_name' => 'Khóa học Tiktok Ads',
+                        'content' => 'TikTok không chỉ để xem giải trí, mà là mỏ vàng bán hàng nếu bạn biết cách khai thác. Khóa học TikTok Ads hướng dẫn bạn tạo nội dung dễ viral, chạy quảng cáo đúng insight và chốt đơn ngay cả khi bạn mới bắt đầu từ con số “0”.',
                         'price' => 4900000,
                         'original_price' => 8400000,
-                        'teacher' => 'Expert C',
-                        'duration' => '1 tháng',
+                        'duration' => '12 buổi',
                         'start_date' => $m3_start,
                         'end_date' => $m3_end
                     ]
@@ -91,10 +91,10 @@ function cf7_registration_data() {
                     'course_key' => 'combo-fb-tt',
                     'data' => [
                         'course_name' => 'Combo Facebook Ads & Tiktok Ads',
+                        'content' => 'Kết hợp nhu cầu chủ động và bị động, giúp thương hiệu xuất hiện đúng lúc – đúng nơi – đúng khách hàng, tối đa hóa tỷ lệ chuyển đổi quảng cáo trực tuyến.',
                         'price' => 8500000,
                         'original_price' => 17000000,
-                        'teacher' => 'Expert A & C',
-                        'duration' => '3 tháng (bao gồm thời gian chờ)',
+                        'duration' => '36 buổi',
                         'start_date' => $m1_start,
                         'end_date' => $m3_end
                     ]
@@ -104,10 +104,10 @@ function cf7_registration_data() {
                     'course_key' => 'combo-fb-gg',
                     'data' => [
                         'course_name' => 'Combo Facebook Ads & Google Ads',
+                        'content' => 'Làm chủ hai nền tảng bán hàng mạnh nhất hiện nay, xây dựng hệ thống quảng cáo đa kênh giúp mở rộng tệp khách hàng và tối ưu doanh thu bền vững.',
                         'price' => 8500000,
                         'original_price' => 17000000,
-                        'teacher' => 'Expert A & B',
-                        'duration' => '2 tháng',
+                        'duration' => '24 buổi',
                         'start_date' => $m1_start,
                         'end_date' => $m2_end
                     ]
@@ -117,10 +117,10 @@ function cf7_registration_data() {
                     'course_key' => 'marketing-total',
                     'data' => [
                         'course_name' => 'Khóa học Marketing toàn diện',
+                        'content' => 'Giải pháp đào tạo toàn diện 3 nền tảng quảng cáo lớn nhất facebook, tiktok, Google, giúp bạn xây dựng hệ thống marketing đa kênh và tăng trưởng doanh thu dài hạn.',
                         'price' => 13900000,
                         'original_price' => 25400000,
-                        'teacher' => 'Đội ngũ chuyên gia',
-                        'duration' => '3 tháng',
+                        'duration' => '36 buổi',
                         'start_date' => $m1_start,
                         'end_date' => $m3_end
                     ]

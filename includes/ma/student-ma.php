@@ -68,7 +68,6 @@ function cf7_handle_student_create() {
             'key'     => $course_key,
             'name'    => $course_data['course_name'] ?? '',
             'price'   => floatval($course_data['price'] ?? 0),
-            'teacher' => $course_data['teacher'] ?? '',
         ],
         'order_status' => 'waiting',
         'payment' => [
@@ -175,7 +174,6 @@ function cf7_handle_student_update() {
     $old_data['course']['key'] = $course_key;
     $old_data['course']['name'] = $course_data['course_name'] ?? '';
     $old_data['course']['price'] = floatval($course_data['price'] ?? 0);
-    $old_data['course']['teacher'] = $course_data['teacher'] ?? '';
     
     // Nếu giá khóa học thay đổi, cập nhật lại deposit amount
     if ($old_data['payment']['status'] === 'deposit') {
@@ -375,7 +373,6 @@ function cf7_get_table_rows_combined() {
                 'course_key' => $key,
                 'course_name' => $course_data['course_name'] ?? '',
                 'price' => floatval($course_data['price'] ?? 0),
-                'teacher' => $course_data['teacher'] ?? '',
                 'duration' => $course_data['duration'] ?? '',
                 'start_date' => $course_data['start_date'] ?? '',
                 'end_date' => $course_data['end_date'] ?? '',
@@ -544,7 +541,7 @@ function cf7_get_table_rows_combined() {
     
     /* Nút Thêm Học Viên Pro */ 
     button[onclick*="cf7_open_student_modal"] { 
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important; 
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important; 
         color: #fff !important; 
         border: none !important; 
         font-weight: 700 !important; 
@@ -604,7 +601,7 @@ function cf7_get_table_rows_combined() {
     $output .= "<div style='display:flex; align-items:center; gap:12px;'>";
     
     // ✅ Nút Thêm học viên
-    $output .= "<button type='button' onclick='cf7_open_student_modal()' style='padding:8px 16px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; transition:all 0.3s;' onmouseover='this.style.transform=\"scale(1.05)\"' onmouseout='this.style.transform=\"scale(1)\"'>➕ Thêm Học Viên</button>";
+    $output .= "<button type='button' onclick='cf7_open_student_modal()' style='padding:8px 16px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:8px; cursor:pointer; font-weight:600; font-size:13px; transition:all 0.3s;' onmouseover='this.style.transform=\"scale(1.05)\"' onmouseout='this.style.transform=\"scale(1)\"'>➕ Thêm Học Viên</button>";
     
     // --- TOOLBAR: DATE PICKER ---
     $output .= "<div class='quan-ly-datepicker'><input type='date' id='cf7_filter_date' value='".esc_attr($filter_date)."' onchange='cf7_exec_combined_filter()' style='padding:6px 10px; border:1px solid #d0e6ff; border-radius:999px; font-size:13px; outline:none; background:#f4f8ff;'></div>";
@@ -643,7 +640,7 @@ function cf7_get_table_rows_combined() {
     // SEARCH BOX (Chống submit CF7)
     $output .= "<div class='quan-ly-search-box' style='display:flex; align-items:center; border:1px solid #e1e8ed; border-radius:8px; overflow:hidden; background:#fff; box-shadow:0 2px 4px rgba(0,0,0,0.08);'>
         <input type='text' id='cf7_search_input' placeholder='🔍 Tìm tên học viên...' value='".esc_attr($search_name)."' style='border:none; padding:10px 16px; outline:none; font-size:14px; width:200px; height:40px; background:transparent;'>
-        <button type='button' id='btn_cf7_search_exec' style='background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border:none; padding:0 20px; cursor:pointer; font-size:13px; font-weight:600; height:40px;'>Tìm kiếm</button>
+        <button type='button' id='btn_cf7_search_exec' style='background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; padding:0 20px; cursor:pointer; font-size:13px; font-weight:600; height:40px;'>Tìm kiếm</button>
         <script>
             (function($){ $(document).ready(function(){
                 function do_s(e){ if(e) e.preventDefault(); var v=$('#cf7_search_input').val(); var u=new URL(window.location.href); if(v) u.searchParams.set('cf7_s',v); else u.searchParams.delete('cf7_s'); u.searchParams.delete('cf7_page'); window.location.href=u.href; return false; }
@@ -700,7 +697,7 @@ function cf7_get_table_rows_combined() {
     }
 
     if ($results) {
-        $total_students = 0; $total_course_price = 0; $total_deposit_value = 0; $total_must_pay = 0;
+        // $total_students = 0; $total_course_price = 0; $total_deposit_value = 0; $total_must_pay = 0; // Đã chuyển sang trang thống kê riêng
 
         foreach ($results as $row) {
             $val = json_decode($row->data, true);
@@ -718,7 +715,7 @@ function cf7_get_table_rows_combined() {
             $deposit_saved = floatval($val['payment']['deposit'] ?? ($full_price * 0.2));
             $must_pay_remaining = max($full_price - $paid_amount, 0);
 
-            $total_students++; $total_course_price += $full_price; $total_deposit_value += $deposit_saved; $total_must_pay += $must_pay_remaining;
+            // $total_students++; $total_course_price += $full_price; $total_deposit_value += $deposit_saved; $total_must_pay += $must_pay_remaining;
 
             // --- RENDER ---
             $status_labels = [
@@ -731,16 +728,16 @@ function cf7_get_table_rows_combined() {
 
             $output .= "<tr>";
             $output .= "<td>" . date('d/m', strtotime($row->created_at)) . "</td>";
-            $output .= "<td><strong>" . esc_html($u_name ?: 'N/A') . "</strong><br><small>" . esc_html($val['user']['phone'] ?? '') . "</small></td>";
+            $output .= "<td><div style='font-weight:bold; margin-bottom:2px;'>" . esc_html($u_name ?: 'N/A') . "</div><div style='font-size:0.9em; color:#555;'>" . esc_html($val['user']['phone'] ?? '') . "</div></td>";
             
             // Hiển thị tên khóa học và thời gian
             $course_time_info = '';
             if ($course_info && !empty($course_info->start_date) && !empty($course_info->end_date)) {
                 $start_formatted = date('d/m/Y', strtotime($course_info->start_date));
                 $end_formatted = date('d/m/Y', strtotime($course_info->end_date));
-                $course_time_info = "<br><small style='color:#7f8c8d;'>📅 {$start_formatted} - {$end_formatted}</small>";
+                $course_time_info = "<div style='font-size:0.9em; color:#7f8c8d; margin-top:2px;'>📅 {$start_formatted} - {$end_formatted}</div>";
             }
-            $output .= "<td><strong>" . esc_html($course_display_name) . "</strong>{$course_time_info}</td>";
+            $output .= "<td><div style='font-weight:bold;'>" . esc_html($course_display_name) . "</div>{$course_time_info}</td>";
             
             // Hiển thị thông tin cọc, hoàn cọc hoặc hủy
             if ($status === 'refund') {
@@ -794,17 +791,9 @@ function cf7_get_table_rows_combined() {
             $output .= "</tr>";
         }
 
-        $deposit_ratio = $total_course_price > 0 ? ($total_deposit_value / $total_course_price * 100) : 0;
-        $remaining_ratio = $total_course_price > 0 ? ($total_must_pay / $total_course_price * 100) : 0;
-
-        $output .= "7tr class='quan-ly-summary'><td colspan='8' style='background:#f9f9f9; padding:12px; font-weight:bold;'>
-                <div class='summary-stats'><span>👨‍🎓 " . number_format($total_students) . " HV</span><span>💰 " . number_format($total_course_price) . "đ học phí</span><span>🔹 " . number_format($total_deposit_value) . "đ đã cọc</span><span>🔻 " . number_format($total_must_pay) . "đ còn phải thu</span></div>
-                <div class='summary-bars'><div class='summary-bar-track'><div class='summary-bar-deposit' style='width:{$deposit_ratio}%'></div><div class='summary-bar-remaining' style='width:{$remaining_ratio}%'></div></div></div>
-            </td></tr>";
-        
         // Phân trang
         if ($total_pages > 1) {
-            $output .= "<tr7class='quan-ly-pagination'><td colspan='8' style='padding:20px; text-align:center; background:#f9f9f9;'>";
+            $output .= "<tr class='quan-ly-pagination'><td colspan='8' style='padding:20px; text-align:center; background:#f9f9f9;'>";
             $output .= "<div style='display:inline-flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center;'>";
             
             // Nút Previous
@@ -829,10 +818,10 @@ function cf7_get_table_rows_combined() {
             
             for ($i = $start_page; $i <= $end_page; $i++) {
                 if ($i == $current_page) {
-                    $output .= "<span style='padding:8px 12px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border-radius:6px; font-weight:700;'>" . $i . "</span>";
+                    $output .= "<span style='padding:8px 12px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border-radius:6px; font-weight:700;'>" . $i . "</span>";
                 } else {
                     $page_url = add_query_arg('cf7_page', $i, $base_url);
-                    $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#667eea\"; this.style.color=\"#667eea\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
+                    $output .= "<a href='" . esc_url($page_url) . "' style='padding:8px 12px; background:#fff; color:#34495e; border:1px solid #ddd; border-radius:6px; text-decoration:none; font-weight:600; transition:all 0.3s;' onmouseover='this.style.borderColor=\"#3498db\"; this.style.color=\"#3498db\"' onmouseout='this.style.borderColor=\"#ddd\"; this.style.color=\"#34495e\"'>" . $i . "</a>";
                 }
             }
             
@@ -941,7 +930,7 @@ function cf7_student_modal_html() {
                 </div>
                 <div style="display:flex; gap:10px; justify-content:flex-end;">
                     <button type="button" onclick="cf7_close_student_modal()" style="padding:10px 20px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Hủy</button>
-                    <button type="submit" style="padding:10px 20px; background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
+                    <button type="submit" style="padding:10px 20px; background:linear-gradient(135deg, #3498db 0%, #2980b9 100%); color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Lưu</button>
                 </div>
             </form>
         </div>

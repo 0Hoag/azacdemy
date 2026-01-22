@@ -155,7 +155,6 @@ function cf7_get_featured_courses_html($limit = 3) {
                 'key' => $row['course_key'],
                 'name' => $course_data['course_name'] ?? '',
                 'price' => floatval($course_data['price'] ?? 0),
-                'teacher' => $course_data['teacher'] ?? '',
                 'duration' => $course_data['duration'] ?? '',
                 'start_date' => $course_data['start_date'] ?? '',
                 'end_date' => $course_data['end_date'] ?? ''
@@ -189,7 +188,7 @@ function cf7_get_featured_courses_html($limit = 3) {
     .cf7-featured-courses-title h3 {
         font-size: 32px;
         font-weight: 700;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
@@ -202,7 +201,7 @@ function cf7_get_featured_courses_html($limit = 3) {
         display: block;
         width: 60px;
         height: 4px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
         margin: 15px auto 0;
         border-radius: 2px;
     }
@@ -224,11 +223,11 @@ function cf7_get_featured_courses_html($limit = 3) {
     }
     .cf7-course-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 12px 40px rgba(102, 126, 234, 0.2);
-        border-color: #667eea;
+        box-shadow: 0 12px 40px rgba(52, 152, 219, 0.2);
+        border-color: #3498db;
     }
     .cf7-course-card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
         padding: 20px;
         color: #fff;
         position: relative;
@@ -243,20 +242,13 @@ function cf7_get_featured_courses_html($limit = 3) {
         height: 0;
         border-left: 20px solid transparent;
         border-right: 20px solid transparent;
-        border-top: 20px solid #764ba2;
+        border-top: 20px solid #2980b9;
     }
     .cf7-course-name {
         font-size: 20px;
         font-weight: 700;
         margin: 0 0 8px 0;
         line-height: 1.3;
-    }
-    .cf7-course-teacher {
-        font-size: 14px;
-        opacity: 0.9;
-        display: flex;
-        align-items: center;
-        gap: 6px;
     }
     .cf7-course-body {
         padding: 30px 20px 20px;
@@ -336,7 +328,6 @@ function cf7_get_featured_courses_html($limit = 3) {
         $output .= '<div class="cf7-course-card">';
         $output .= '<div class="cf7-course-card-header">';
         $output .= '<div class="cf7-course-name">' . esc_html($course['name']) . '</div>';
-        $output .= '<div class="cf7-course-teacher">👨‍🏫 ' . esc_html($course['teacher']) . '</div>';
         $output .= '</div>';
         $output .= '<div class="cf7-course-body">';
         $output .= '<div class="cf7-course-price">';
@@ -619,7 +610,6 @@ function cf7_send_to_telegram() {
     $course_info = [
         'name' => null,
         'price' => 0,
-        'teacher' => null,
         'duration' => '',
         'start_date' => '',
         'end_date' => ''
@@ -637,7 +627,6 @@ function cf7_send_to_telegram() {
                 $course_info = [
                     'name' => $course_data['course_name'] ?? null,
                     'price' => floatval($course_data['price'] ?? 0),
-                    'teacher' => $course_data['teacher'] ?? null,
                     'duration' => $course_data['duration'] ?? '',
                     'start_date' => $course_data['start_date'] ?? '',
                     'end_date' => $course_data['end_date'] ?? ''
@@ -659,7 +648,6 @@ function cf7_send_to_telegram() {
             'key'     => $course_key,
             'name'    => $course_info['name'],
             'price'   => $course_info['price'],
-            'teacher' => $course_info['teacher'],
         ],
 
         // waiting (Chờ xử lý) | deposit (Cọc) | completed (Hoàn thành) | overdue (Trễ hạn)
@@ -754,7 +742,9 @@ function cf7_filter_course_menu_for_admin_only($items, $menu, $args) {
         // Ẩn menu quản lý khóa học và các biến thể
         if ($title == 'Quản Lý Khóa Học' || 
             $title == 'Quản Lý' ||
-            (stripos($title, 'Quản Lý') !== false && stripos($title, 'Khóa Học') !== false)) {
+            (stripos($title, 'Quản Lý') !== false && stripos($title, 'Khóa Học') !== false) ||
+            stripos($title, 'Thống kê') !== false ||
+            stripos($title, 'Doanh thu') !== false) {
             unset($items[$key]);
         }
     }
