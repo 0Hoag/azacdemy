@@ -78,7 +78,7 @@ function cf7_render_highlight_courses($atts) {
                 </div>
                 
                 <button type="button" class="course-register-btn" onclick="cf7_open_register_modal('<?php echo esc_attr($course_key); ?>', '<?php echo esc_attr($name); ?>')">
-                    ĐĂNG KÝ NGAY
+                    Đăng ký ngay
                 </button>
             </div>
             <?php endforeach; ?>
@@ -170,7 +170,7 @@ function cf7_render_highlight_courses($atts) {
     .course-divider {
         height: 1px;
         background: #3498db;
-        width: 50px;
+        width: 100%; /* Full width theo yêu cầu */
         margin: 0 0 20px 0;
     }
     
@@ -205,22 +205,23 @@ function cf7_render_highlight_courses($atts) {
     
     .course-register-btn {
         width: 100%;
-        padding: 14px;
-        background: linear-gradient(to right, #3498db, #2980b9);
-        color: white;
+        padding: 8px 15px; /* Giảm padding xuống 8px để nút ngắn hơn theo chiều dọc */
+        background: #0064E0;
+        color: #FFFFFF;
         border: none;
-        border-radius: 50px;
+        border-radius: 50px; /* Bo tròn kiểu Pill shape như mẫu */
         font-weight: 700;
-        font-size: 14px;
+        font-size: 15.52px; /* Theo yêu cầu chính xác */
+        font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        line-height: 1.2; /* Đảm bảo chiều cao dòng gọn gàng */
         cursor: pointer;
-        text-transform: uppercase;
-        letter-spacing: 1px;
         transition: all 0.3s ease;
+        box-sizing: border-box; /* Đảm bảo kích thước tính cả padding */
     }
     
     .course-register-btn:hover {
-        background: linear-gradient(to right, #2980b9, #3498db);
-        box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        background: #0056b3;
+        box-shadow: 0 5px 15px rgba(0, 100, 224, 0.4);
     }
 
     /* Responsive adjustments */
