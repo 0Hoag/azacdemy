@@ -9,6 +9,7 @@ if (!defined('ABSPATH')) exit;
 define('CF7_TELE_PATH', plugin_dir_path(__FILE__));
 
 // Import các thành phần
+require_once CF7_TELE_PATH . 'pkg/env-loader.php';
 require_once CF7_TELE_PATH . 'includes/database.php';
 require_once CF7_TELE_PATH . 'includes/sales-statistics.php';
 require_once CF7_TELE_PATH . 'includes/home/submission.php';

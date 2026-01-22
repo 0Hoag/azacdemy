@@ -640,8 +640,14 @@ function cf7_send_to_telegram() {
     }
     
     // ✅ Telegram config
-    $bot_token = '8546369954:AAH5cLLAbu9UWVhjN6k7I6f_JksplJakCno'; 
-    $chat_id = '7262117677';
+    $bot_token = cf7_get_env('TELEGRAM_BOT_TOKEN'); 
+    $chat_id = cf7_get_env('TELEGRAM_CHAT_ID');
+
+    if (empty($bot_token) || empty($chat_id)) {
+        // Fallback keys if .env is missing
+        $bot_token = '8546369954:AAH5cLLAbu9UWVhjN6k7I6f_JksplJakCno'; 
+        $chat_id = '7262117677';
+    }
     
     // Xử lý nếu là array (CF7 đôi khi trả về array cho select)
     if (is_array($course_raw)) {
