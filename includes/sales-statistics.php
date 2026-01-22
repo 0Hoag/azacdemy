@@ -226,9 +226,9 @@ function cf7_render_revenue_stats() {
             transition: all 0.2s;
         }
         .stats-filter-btn.active, .stats-filter-btn:hover {
-            background: #3498db;
+            background: #0064E0;
             color: #fff;
-            border-color: #3498db;
+            border-color: #0064E0;
         }
         .stats-grid-top {
             display: grid;
@@ -261,7 +261,7 @@ function cf7_render_revenue_stats() {
             color: #95a5a6;
             margin-top: 5px;
         }
-        .stats-card.highlight .value { color: #3498db; }
+        .stats-card.highlight .value { color: #0064E0; }
         .stats-card.success .value { color: #2ecc71; }
         .stats-card.warning .value { color: #f39c12; }
 
@@ -361,7 +361,7 @@ function cf7_render_revenue_stats() {
                 labels: ['Hoàn thành', 'Đã cọc', 'Chờ xử lý'],
                 datasets: [{
                     data: [<?php echo $paid_count; ?>, <?php echo $deposit_count; ?>, <?php echo $unpaid_count; ?>],
-                    backgroundColor: ['#2ecc71', '#3498db', '#f39c12'],
+                    backgroundColor: ['#2ecc71', '#0064E0', '#f39c12'],
                     borderWidth: 0,
                     hoverOffset: 4
                 }]
@@ -390,7 +390,7 @@ function cf7_render_revenue_stats() {
                 datasets: [{
                     label: 'Doanh thu (VNĐ)',
                     data: trendData,
-                    backgroundColor: '#3498db',
+                    backgroundColor: '#0064E0',
                     borderRadius: 4,
                     barPercentage: 0.6
                 }]
