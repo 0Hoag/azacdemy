@@ -68,6 +68,14 @@ function cf7_render_revenue_stats() {
             $chart_trend_data[$d] = 0;
             $trend_labels[$d] = date('d/m', strtotime($d)); // Label ngắn gọn
         }
+    } elseif ($current_period == 'day') {
+        // Hôm nay: 0h -> 23h
+        for ($i=0; $i<24; $i++) {
+            $h = str_pad($i, 2, '0', STR_PAD_LEFT);
+            $key = $h;
+            $chart_trend_data[$key] = 0;
+            $trend_labels[$key] = $h . "h";
+        }
     } elseif ($current_period == 'month') {
         // Tháng này: 1 -> End
         $days_in_month = date('t');
@@ -163,6 +171,11 @@ function cf7_render_revenue_stats() {
         } elseif ($current_period == 'week' || $current_period == 'month') {
             if (isset($chart_trend_data[$row_date_ymd])) {
                 $chart_trend_data[$row_date_ymd] += $full_price;
+            }
+        } elseif ($current_period == 'day') {
+            $h = date('H', strtotime($created_at));
+            if (isset($chart_trend_data[$h])) {
+                $chart_trend_data[$h] += $full_price;
             }
         } else {
             // Day hoặc All -> Dynamic accumulation
@@ -331,7 +344,7 @@ function cf7_render_revenue_stats() {
         <div class="charts-container">
             <!-- Column Chart: Revenue Trend -->
             <div class="chart-box">
-                <h4>Biểu đồ Doanh Thu (<?php echo $current_period == 'year' ? 'Theo tháng' : ($current_period == 'all' ? 'Theo tháng' : 'Theo ngày'); ?>)</h4>
+                <h4>Biểu đồ Doanh Thu (<?php echo $current_period == 'year' ? 'Theo tháng' : ($current_period == 'all' ? 'Theo tháng' : ($current_period == 'day' ? 'Theo giờ' : 'Theo ngày')); ?>)</h4>
                 <div style="width: 100%; height: 250px;">
                     <canvas id="trendChart"></canvas>
                 </div>
