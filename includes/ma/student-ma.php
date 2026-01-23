@@ -1319,7 +1319,7 @@ function cf7_filter_menu_for_admin_only($items, $menu, $args) {
             $title == 'Quản Lý' ||
             stripos($title, 'Quản Lý') !== false) {
             unset($items[$key]);
-        }
+        } 
     }
 
     return $items;

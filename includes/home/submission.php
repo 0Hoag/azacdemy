@@ -436,297 +436,42 @@ function cf7_get_course_info_ajax() {
     ]);
 }
 
-// Thêm script để hiển thị thời gian khi chọn khóa học
-add_action('wp_footer', 'cf7_course_time_display_script');
-function cf7_course_time_display_script() {
-    ?>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Tìm select khóa học trong form CF7
-        var courseSelect = document.querySelector('select[name="course-name"]');
-        if (!courseSelect) return;
-        // ⚠️ IMPORTANT:
-        // Không tự thay đổi options của select bằng JS vì CF7 validate theo schema enum lúc render form.
-        // Nếu JS thay options khác với schema -> sẽ báo "Undefined value was submitted through this field."
-        
-        // Tạo div để hiển thị thời gian và chọn lịch
-        var timeDisplay = document.createElement('div');
-        timeDisplay.id = 'cf7-course-time-display';
-        // Style đơn giản, không đóng khung alert
-        timeDisplay.style.cssText = 'margin-top: 10px; display: none;';
-        
-        // Tạo input hidden để lưu schedule index
-        var scheduleInput = document.createElement('input');
-        scheduleInput.type = 'hidden';
-        scheduleInput.name = 'cf7-course-schedule-index';
-        scheduleInput.value = '';
-        courseSelect.parentNode.appendChild(scheduleInput);
+// Hook to enqueue scripts and styles for standard forms
+add_action('wp_enqueue_scripts', 'cf7_standard_form_assets');
 
-        // Chèn div vào sau select
-        courseSelect.parentNode.insertBefore(timeDisplay, courseSelect.nextSibling);
-        
-        // Xử lý khi chọn khóa học
-        courseSelect.addEventListener('change', function() {
-            var selectedValue = this.value;
-            if (!selectedValue) {
-                timeDisplay.style.display = 'none';
-                scheduleInput.value = '';
-                return;
-            }
-            
-            var courseKey = selectedValue;
-            
-            // Hiển thị loading (dạng text nhỏ)
-            timeDisplay.style.display = 'block';
-            timeDisplay.innerHTML = '<span style="font-size:13px; color:#666;">⏳ Đang tải lịch học...</span>';
-            scheduleInput.value = ''; // Reset schedule
-            
-            // Gọi AJAX để lấy thông tin khóa học
-            var formData = new FormData();
-            formData.append('action', 'cf7_get_course_info');
-            formData.append('course_key', courseKey);
-            
-            fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    var html = '';
-                    var hasSchedules = data.data.schedules && data.data.schedules.length > 0;
-                    
-                    if (hasSchedules) {
-                        // Set giá trị mặc định cho hidden input là schedule đầu tiên
-                        scheduleInput.value = data.data.schedules[0].index;
+function cf7_standard_form_assets() {
+    // Enqueue Common Form CSS
+    wp_enqueue_style(
+        'cf7-form-style', 
+        plugins_url('../../assets/css/cf7-form.css', __FILE__), 
+        [], 
+        '1.0.0'
+    );
 
-                        // Tạo dropdown chọn lịch
-                        html += '<div style="margin-bottom:5px; font-weight:600; font-size:14px; color:#333;">📅 Chọn lịch khai giảng:</div>';
-                        html += '<select id="cf7_schedule_select" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-size:14px; color:#333; background:#fff;" onchange="document.querySelector(\'[name=\\\'cf7-course-schedule-index\\\']\').value = this.value;">';
-                        
-                        data.data.schedules.forEach(function(sch, index) {
-                            html += `<option value="${sch.index}">
-                                ${sch.label} (Khai giảng: ${sch.start_fmt})
-                            </option>`;
-                        });
-                        html += '</select>';
-                        
-                    } else if (data.data.start_date) {
-                        // Trường hợp cũ (1 lịch) -> Hiển thị text như trước nhưng đẹp hơn
-                        html = '<div style="padding:10px; background:#f8f9fa; border-radius:6px; color:#333; font-size:14px;">📅 <strong>Khai giảng:</strong> ' + data.data.start_date + '</div>';
-                    } else {
-                        html = '<div style="font-style:italic; font-size:13px; color:#777;">(Chưa có lịch khai giảng)</div>';
-                    }
-                    
-                    timeDisplay.innerHTML = html;
-                    timeDisplay.style.display = 'block';
-                } else {
-                    timeDisplay.style.display = 'none';
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                timeDisplay.style.display = 'none';
-            });
-        });
-        
-        // Trigger change nếu đã có giá trị được chọn
-        if (courseSelect.value) {
-            courseSelect.dispatchEvent(new Event('change'));
-        }
-    });
-    </script>
-    <?php
-}
+    // Enqueue Common Form JS (Reset & Success Message)
+    wp_enqueue_script(
+        'cf7-form-script', 
+        plugins_url('../../assets/js/cf7-form.js', __FILE__), 
+        [], 
+        '1.0.0', 
+        true
+    );
 
-// Reset form và hiển thị thông báo thành công rõ ràng sau khi gửi
-add_action('wp_footer', 'cf7_reset_form_and_message_after_submit');
-function cf7_reset_form_and_message_after_submit() {
-    ?>
-    <style>
-    /* ✅ Style cho tiêu đề form đăng ký */
-    .form-main-title {
-        font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Font đơn giản, dễ nhìn */
-        text-align: center;
-        font-size: 26px;
-        color: #0064E0; /* Màu xanh đồng bộ */
-        margin-bottom: 25px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        position: relative;
-        padding-bottom: 15px;
-    }
-    .form-main-title::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 60px;
-        height: 3px;
-        background: #0064E0;
-        border-radius: 2px;
-    }
-
-    /* ✅ Custom Layout cho Form: Mỗi input 1 dòng, full width */
-    .cf7-custom-form {
-        width: 100%;
-        box-sizing: border-box;
-    }
+    // Enqueue Standard Form Logic (Select Dropdown behavior)
+    wp_enqueue_script(
+        'cf7-standard-form-script', 
+        plugins_url('../../assets/js/cf7-standard-form.js', __FILE__), 
+        [], 
+        '1.0.0', 
+        true
+    );
     
-    /* Đảm bảo mỗi group (thường là thẻ p trong CF7) xuống dòng và có khoảng cách */
-    .cf7-custom-form p {
-        margin-bottom: 20px;
-        display: block;
-        width: 100%;
-    }
-
-    /* Label nằm trên input */
-    .cf7-custom-form label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: #333;
-        font-size: 15px;
-        text-align: left; /* Căn trái */
-    }
-
-    /* Input/Select/Textarea full width */
-    .cf7-custom-form input[type="text"],
-    .cf7-custom-form input[type="email"],
-    .cf7-custom-form input[type="tel"],
-    .cf7-custom-form input[type="date"],
-    .cf7-custom-form textarea,
-    .cf7-custom-form select {
-        width: 100%;
-        display: block;
-        padding: 12px 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px; /* Bo tròn nhẹ */
-        box-sizing: border-box;
-        font-size: 15px;
-        background-color: #f9f9f9;
-        transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-        font-family: inherit;
-    }
-
-    /* Hiệu ứng focus */
-    .cf7-custom-form input:focus,
-    .cf7-custom-form textarea:focus,
-    .cf7-custom-form select:focus {
-        border-color: #0064E0;
-        background-color: #fff;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(0, 100, 224, 0.1);
-    }
-
-    /* Placeholder color */
-    .cf7-custom-form input::placeholder,
-    .cf7-custom-form textarea::placeholder {
-        color: #aaa;
-    }
-
-    /* Wrapper cho input (nếu CF7 thêm span) */
-    .cf7-custom-form .wpcf7-form-control-wrap {
-        display: block;
-        width: 100%;
-    }
-
-    /* ✅ Style cho button submit của CF7 giống với button đăng ký */
-    .wpcf7-form .wpcf7-submit {
-        width: 100%;
-        padding: 10px 15px !important; /* Chiều cao ~39px */
-        background: #0064E0 !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 50px !important; /* Bo tròn Pill shape */
-        font-weight: 700 !important;
-        font-size: 15.52px !important;
-        font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-sizing: border-box !important;
-        margin-top: 10px;
-        text-transform: none !important; /* Không bắt buộc viết hoa */
-    }
-    .wpcf7-form .wpcf7-submit:hover {
-        background: #0056b3 !important;
-        box-shadow: 0 5px 15px rgba(0, 100, 224, 0.4) !important;
-        transform: translateY(-2px);
-    }
-
-    /* ✅ FIX: Đảm bảo thông báo thành công hiển thị rõ ràng */
-    .wpcf7-response-output.wpcf7-mail-sent-ok {
-        display: block !important;
-        padding: 15px 20px !important;
-        margin: 20px 0 !important;
-        background: #d4edda !important;
-        border: 2px solid #28a745 !important;
-        border-radius: 8px !important;
-        color: #155724 !important;
-        font-size: 16px !important;
-        font-weight: 500 !important;
-        text-align: center !important;
-        line-height: 1.5 !important;
-        min-height: auto !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-    /* ✅ FIX: Đảm bảo text hiển thị ngay cả khi aria-hidden */
-    .wpcf7-response-output.wpcf7-mail-sent-ok[aria-hidden="true"] {
-        display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-    }
-    </style>
-    <script>
-    // Dùng wpcf7submit để bắt cả trạng thái mail_skipped (do skip mail)
-    document.addEventListener('wpcf7submit', function(event) {
-        var form = event.target;
-        if (!form || !event.detail) return;
-
-        // Chỉ áp dụng cho form có field course-name
-        if (!form.querySelector('[name="course-name"]')) {
-            return;
-        }
-
-        // Chỉ xử lý khi submit thành công hoặc mail_skipped (do skip mail)
-        var okStatus = ['mail_sent', 'mail_skipped'];
-        if (okStatus.indexOf(event.detail.status) === -1) {
-            return;
-        }
-
-        // Reset form
-        form.reset();
-
-        // ✅ FIX: Hiển thị thông báo thành công với delay để đảm bảo CF7 đã render xong
-        setTimeout(function() {
-            var response = form.querySelector('.wpcf7-response-output');
-            if (response) {
-                // Xóa các class lỗi
-                response.classList.remove('wpcf7-validation-errors', 'wpcf7-mail-sent-ng', 'wpcf7-aborted');
-                response.classList.add('wpcf7-mail-sent-ok');
-                
-                // ✅ FIX: Set text content và đảm bảo hiển thị
-                response.textContent = '✅ Cảm ơn bạn! Đăng ký đã được gửi thành công.';
-                response.innerHTML = '✅ Cảm ơn bạn! Đăng ký đã được gửi thành công.';
-                
-                // ✅ FIX: Đảm bảo hiển thị và bỏ aria-hidden
-                response.style.display = 'block';
-                response.style.visibility = 'visible';
-                response.style.opacity = '1';
-                response.removeAttribute('aria-hidden');
-                response.setAttribute('aria-hidden', 'false');
-                
-                // ✅ FIX: Scroll đến thông báo để user thấy rõ
-                response.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }, 100);
-    }, false);
-    </script>
-    <?php
+    // Pass AJAX URL
+    wp_localize_script('cf7-standard-form-script', 'cf7_ajax_obj', [
+        'ajax_url' => admin_url('admin-ajax.php')
+    ]);
 }
+
 
 // add_action('wpcf7_mail_sent', 'cf7_send_to_telegram');
 
