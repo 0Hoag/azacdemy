@@ -322,8 +322,7 @@ function cf7_get_featured_courses_html($limit = 3) {
     
     foreach ($courses_list as $course) {
         $start_formatted = !empty($course['start_date']) ? date('d/m/Y', strtotime($course['start_date'])) : '';
-        $end_formatted = !empty($course['end_date']) ? date('d/m/Y', strtotime($course['end_date'])) : '';
-        $time_info = ($start_formatted && $end_formatted) ? "<div class='cf7-course-time'>📅 {$start_formatted} - {$end_formatted}</div>" : '';
+        $time_info = ($start_formatted) ? "<div class='cf7-course-time'>📅 Khai giảng: {$start_formatted}</div>" : '';
         
         $output .= '<div class="cf7-course-card">';
         $output .= '<div class="cf7-course-card-header">';
@@ -415,10 +414,25 @@ function cf7_get_course_info_ajax() {
     $start_formatted = !empty($course_data['start_date']) ? date('d/m/Y', strtotime($course_data['start_date'])) : '';
     $end_formatted = !empty($course_data['end_date']) ? date('d/m/Y', strtotime($course_data['end_date'])) : '';
     
+    // Xử lý schedules nếu có
+    $schedules_list = [];
+    if (!empty($course_data['schedules']) && is_array($course_data['schedules'])) {
+        foreach ($course_data['schedules'] as $idx => $sch) {
+            if (empty($sch['start'])) continue;
+            $schedules_list[] = [
+                'index' => $idx,
+                'start' => $sch['start'],
+                'start_fmt' => date('d/m/Y', strtotime($sch['start'])),
+                'label' => 'K' . ($idx + 1)
+            ];
+        }
+    }
+
     wp_send_json_success([
         'start_date' => $start_formatted,
         'end_date' => $end_formatted,
-        'duration' => $course_data['duration'] ?? ''
+        'duration' => $course_data['duration'] ?? '',
+        'schedules' => $schedules_list
     ]);
 }
 
@@ -435,11 +449,19 @@ function cf7_course_time_display_script() {
         // Không tự thay đổi options của select bằng JS vì CF7 validate theo schema enum lúc render form.
         // Nếu JS thay options khác với schema -> sẽ báo "Undefined value was submitted through this field."
         
-        // Tạo div để hiển thị thời gian
+        // Tạo div để hiển thị thời gian và chọn lịch
         var timeDisplay = document.createElement('div');
         timeDisplay.id = 'cf7-course-time-display';
-        timeDisplay.style.cssText = 'margin-top: 8px; padding: 10px; background: #f4f8ff; border: 1px solid #d0e6ff; border-radius: 8px; font-size: 13px; color: #34495e; display: none;';
+        // Style đơn giản, không đóng khung alert
+        timeDisplay.style.cssText = 'margin-top: 10px; display: none;';
         
+        // Tạo input hidden để lưu schedule index
+        var scheduleInput = document.createElement('input');
+        scheduleInput.type = 'hidden';
+        scheduleInput.name = 'cf7-course-schedule-index';
+        scheduleInput.value = '';
+        courseSelect.parentNode.appendChild(scheduleInput);
+
         // Chèn div vào sau select
         courseSelect.parentNode.insertBefore(timeDisplay, courseSelect.nextSibling);
         
@@ -448,14 +470,16 @@ function cf7_course_time_display_script() {
             var selectedValue = this.value;
             if (!selectedValue) {
                 timeDisplay.style.display = 'none';
+                scheduleInput.value = '';
                 return;
             }
             
             var courseKey = selectedValue;
             
-            // Hiển thị loading
+            // Hiển thị loading (dạng text nhỏ)
             timeDisplay.style.display = 'block';
-            timeDisplay.innerHTML = '⏳ Đang tải thông tin...';
+            timeDisplay.innerHTML = '<span style="font-size:13px; color:#666;">⏳ Đang tải lịch học...</span>';
+            scheduleInput.value = ''; // Reset schedule
             
             // Gọi AJAX để lấy thông tin khóa học
             var formData = new FormData();
@@ -468,8 +492,33 @@ function cf7_course_time_display_script() {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.data.start_date && data.data.end_date) {
-                    timeDisplay.innerHTML = '📅 <strong>Thời gian khóa học:</strong> ' + data.data.start_date + ' - ' + data.data.end_date;
+                if (data.success) {
+                    var html = '';
+                    var hasSchedules = data.data.schedules && data.data.schedules.length > 0;
+                    
+                    if (hasSchedules) {
+                        // Set giá trị mặc định cho hidden input là schedule đầu tiên
+                        scheduleInput.value = data.data.schedules[0].index;
+
+                        // Tạo dropdown chọn lịch
+                        html += '<div style="margin-bottom:5px; font-weight:600; font-size:14px; color:#333;">📅 Chọn lịch khai giảng:</div>';
+                        html += '<select id="cf7_schedule_select" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-size:14px; color:#333; background:#fff;" onchange="document.querySelector(\'[name=\\\'cf7-course-schedule-index\\\']\').value = this.value;">';
+                        
+                        data.data.schedules.forEach(function(sch, index) {
+                            html += `<option value="${sch.index}">
+                                ${sch.label} (Khai giảng: ${sch.start_fmt})
+                            </option>`;
+                        });
+                        html += '</select>';
+                        
+                    } else if (data.data.start_date) {
+                        // Trường hợp cũ (1 lịch) -> Hiển thị text như trước nhưng đẹp hơn
+                        html = '<div style="padding:10px; background:#f8f9fa; border-radius:6px; color:#333; font-size:14px;">📅 <strong>Khai giảng:</strong> ' + data.data.start_date + '</div>';
+                    } else {
+                        html = '<div style="font-style:italic; font-size:13px; color:#777;">(Chưa có lịch khai giảng)</div>';
+                    }
+                    
+                    timeDisplay.innerHTML = html;
                     timeDisplay.style.display = 'block';
                 } else {
                     timeDisplay.style.display = 'none';
@@ -656,6 +705,11 @@ function cf7_send_to_telegram() {
     
     // ✅ course_key là value thuần của select
     $course_key = sanitize_text_field($course_raw);
+    
+    // Parse index từ hidden input
+    $schedule_index = isset($_POST['cf7-course-schedule-index']) && $_POST['cf7-course-schedule-index'] !== '' 
+        ? intval($_POST['cf7-course-schedule-index']) 
+        : -1;
 
     // ✅ LẤY DỮ LIỆU KHÓA HỌC TỪ DATABASE (NoSQL - JSON)
     global $wpdb;
@@ -666,7 +720,8 @@ function cf7_send_to_telegram() {
         'price' => 0,
         'duration' => '',
         'start_date' => '',
-        'end_date' => ''
+        'end_date' => '',
+        'schedule_label' => ''
     ];
     
     if (!empty($course_key)) {
@@ -683,8 +738,17 @@ function cf7_send_to_telegram() {
                     'price' => floatval($course_data['price'] ?? 0),
                     'duration' => $course_data['duration'] ?? '',
                     'start_date' => $course_data['start_date'] ?? '',
-                    'end_date' => $course_data['end_date'] ?? ''
+                    'end_date' => $course_data['end_date'] ?? '',
+                    'schedule_label' => ''
                 ];
+                
+                // Nếu chọn schedule cụ thể
+                if ($schedule_index >= 0 && !empty($course_data['schedules'][$schedule_index])) {
+                    $sch = $course_data['schedules'][$schedule_index];
+                    $course_info['start_date'] = $sch['start'] ?? '';
+                    $course_info['end_date'] = $sch['end'] ?? '';
+                    $course_info['schedule_label'] = 'K' . ($schedule_index + 1);
+                }
             }
         }
     }
@@ -702,6 +766,10 @@ function cf7_send_to_telegram() {
             'key'     => $course_key,
             'name'    => $course_info['name'],
             'price'   => $course_info['price'],
+            'schedule_index' => $schedule_index,
+            'schedule_label' => $course_info['schedule_label'],
+            'start_date' => $course_info['start_date'], // Lưu lại ngày bắt đầu cụ thể
+            'end_date' => $course_info['end_date'] // Lưu lại ngày kết thúc cụ thể
         ],
 
         // waiting (Chờ xử lý) | deposit (Cọc) | completed (Hoàn thành) | overdue (Trễ hạn)
@@ -754,17 +822,21 @@ function cf7_send_to_telegram() {
 
     // ✅ Telegram notify
     $course_time_info = '';
-    if (!empty($course_info['start_date']) && !empty($course_info['end_date'])) {
+    if (!empty($course_info['start_date'])) {
         $start_formatted = date('d/m/Y', strtotime($course_info['start_date']));
-        $end_formatted = date('d/m/Y', strtotime($course_info['end_date']));
-        $course_time_info = "\n📅 Thời gian: {$start_formatted} - {$end_formatted}";
+        $course_time_info = "\n📅 Khai giảng: {$start_formatted}";
     }
     
+    $course_name_display = $values['course']['name'];
+    if (!empty($values['course']['schedule_label'])) {
+        $course_name_display .= " - " . $values['course']['schedule_label'];
+    }
+
     $text =
         "📩 ĐƠN ĐĂNG KÝ MỚI\n"
         . "👤 Học viên: {$values['user']['name']}\n"
         . "📞 SĐT: {$values['user']['phone']}\n"
-        . "📘 Khóa học: {$values['course']['name']}\n"
+        . "📘 Khóa học: {$course_name_display}\n"
         . "💰 Học phí: " . number_format($values['course']['price']) . " VNĐ"
         . $course_time_info;
 

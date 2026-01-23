@@ -45,6 +45,12 @@ function cf7_render_highlight_courses($atts) {
                 $start_date = isset($data['start_date']) ? $data['start_date'] : '';
                 $end_date = isset($data['end_date']) ? $data['end_date'] : '';
                 $duration = isset($data['duration']) ? $data['duration'] : '';
+                $schedules = isset($data['schedules']) ? $data['schedules'] : [];
+
+                // Backward compatibility: If no schedules but has start/end date, create one
+                if (empty($schedules) && (!empty($start_date) || !empty($end_date))) {
+                    $schedules[] = ['start' => $start_date, 'end' => $end_date];
+                }
             ?>
             <div class="course-card">
                 <h3 class="course-title"><?php echo esc_html($name); ?></h3>
@@ -52,18 +58,21 @@ function cf7_render_highlight_courses($atts) {
                     <?php echo wp_kses_post(wpautop($desc)); ?>
                 </div>
                 
-                <?php if (!empty($start_date) || !empty($end_date) || !empty($duration)): ?>
+                <?php if (!empty($schedules) || !empty($duration)): ?>
                 <div class="course-date-info">
                     <?php if (!empty($duration)): ?>
                         <div class="date-item"><span class="date-label">⏱️</span> <?php echo esc_html($duration); ?></div>
                     <?php endif; ?>
-                    <?php if (!empty($start_date) && !empty($end_date)): ?>
-                        <div class="date-item"><span class="date-label">📅</span> <?php echo date_i18n('d/m/Y', strtotime($start_date)); ?> - <?php echo date_i18n('d/m/Y', strtotime($end_date)); ?></div>
-                    <?php elseif (!empty($start_date)): ?>
-                        <div class="date-item"><span class="date-label">📅</span> <?php echo date_i18n('d/m/Y', strtotime($start_date)); ?></div>
-                    <?php elseif (!empty($end_date)): ?>
-                        <div class="date-item"><span class="date-label">📅</span> Kết thúc: <?php echo date_i18n('d/m/Y', strtotime($end_date)); ?></div>
-                    <?php endif; ?>
+                    
+                    <?php foreach ($schedules as $idx => $sch): 
+                        $s = isset($sch['start']) ? $sch['start'] : '';
+                        if (empty($s)) continue;
+                    ?>
+                    <div class="date-item">
+                        <span class="date-label">📅 Khai giảng<?php echo count($schedules) > 1 ? ' K' . ($idx+1) : ''; ?>:</span> 
+                        <?php echo date_i18n('d/m/Y', strtotime($s)); ?>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
                 <?php endif; ?>
                 

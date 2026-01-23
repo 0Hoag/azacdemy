@@ -353,11 +353,46 @@ function vietnamese_to_alias($str) {
     return strtolower($str);
 }
 
+/**
+ * Tự động kiểm tra và hủy các đơn cọc quá hạn (chạy khi load danh sách)
+ */
+function cf7_process_overdue_leads() {
+    global $wpdb;
+    $table_leads = $wpdb->prefix . 'cf7_leads';
+    
+    // Lấy các lead có khả năng đang deposit (lọc sơ bộ bằng LIKE để tối ưu)
+    $results = $wpdb->get_results("SELECT id, data FROM $table_leads WHERE data LIKE '%\"status\":\"deposit\"%'", OBJECT);
+    
+    $now = current_time('timestamp');
+    
+    foreach ($results as $row) {
+        $data = json_decode($row->data, true);
+        if (!$data) continue;
+        
+        $payment_status = $data['payment']['status'] ?? '';
+        $due_date = $data['payment']['due_date'] ?? '';
+        
+        // Chỉ xử lý nếu đúng là deposit và có hạn thanh toán
+        if ($payment_status === 'deposit' && !empty($due_date)) {
+            $due_timestamp = strtotime($due_date);
+            
+            // Nếu thời gian hiện tại > hạn thanh toán
+            if ($now > $due_timestamp) {
+                // Gọi hàm core để chuyển trạng thái sang cancel
+                cf7_update_lead_status_core($row->id, 'cancel');
+            }
+        }
+    }
+}
+
 // 2. HÀM HIỂN THỊ CHÍNH
 function cf7_get_table_rows_combined() {
     if (!is_user_logged_in() || !current_user_can('manage_options')) {
         return '<tr><td colspan="8" style="text-align:center; padding:20px;">Vui lòng đăng nhập Admin để xem.</td></tr>';
     }
+
+    // --- 0. TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI QUÁ HẠN ---
+    cf7_process_overdue_leads();
 
     global $wpdb;
     $table_leads = $wpdb->prefix . 'cf7_leads';
@@ -429,6 +464,7 @@ function cf7_get_table_rows_combined() {
         text-align: left !important;
         font-weight: 600 !important;
         white-space: nowrap;
+        text-transform: none !important;
     }
     /* ✅ Tăng khoảng cách dòng cho thoáng */
     .table-quan-ly tbody td {
@@ -596,6 +632,28 @@ function cf7_get_table_rows_combined() {
                 thead.appendChild(th);
             }
         }
+
+        // ✅ Fix: Chuẩn hóa tiêu đề bảng (Chỉ viết hoa chữ cái đầu)
+        // Tìm tất cả thẻ TH trong trang
+        var ths = document.querySelectorAll("th");
+        ths.forEach(function(th) {
+            var text = th.textContent.trim();
+            // Chỉ xử lý nếu text dài hơn 1 ký tự
+            if (text.length > 1) {
+                // Kiểm tra xem có phải là header của bảng (dựa vào danh sách từ khóa)
+                var knownHeaders = ["TÊN KHÓA HỌC", "THỜI LƯỢNG", "NGÀY BẮT ĐẦU", "TRẠNG THÁI", "THAO TÁC", "HỌC VIÊN", "NGÀY", "KHÓA HỌC", "SỐ ĐIỆN THOẠI", "TRẠNG THÁI THANH TOÁN", "TRẠNG THÁI LEAD", "GHI CHÚ", "TIỀN CỌC", "ĐÃ THANH TOÁN"];
+                
+                if (knownHeaders.includes(text.toUpperCase())) {
+                    var lower = text.toLowerCase();
+                    // Viết hoa chữ cái đầu tiên của cả câu
+                    th.textContent = lower.charAt(0).toUpperCase() + lower.slice(1);
+                    // Force style để tránh bị CSS khác đè
+                    th.style.textTransform = "none";
+                    th.style.fontSize = "14px"; // Tăng kích thước chữ
+                    th.style.fontWeight = "600"; // Đảm bảo độ đậm
+                }
+            }
+        });
     });
     </script>';
 
@@ -738,11 +796,40 @@ function cf7_get_table_rows_combined() {
             
             // Hiển thị tên khóa học và thời gian
             $course_time_info = '';
-            if ($course_info && !empty($course_info->start_date) && !empty($course_info->end_date)) {
+            
+            // Ưu tiên lấy từ dữ liệu đã lưu trong lead (nếu có schedule cụ thể)
+            $schedule_label = $val['course']['schedule_label'] ?? '';
+            $schedule_start = $val['course']['start_date'] ?? '';
+            $schedule_end   = $val['course']['end_date'] ?? '';
+            $schedule_idx   = isset($val['course']['schedule_index']) ? intval($val['course']['schedule_index']) : -1;
+            
+            // Nếu thiếu end_date nhưng có schedule_index, thử lấy từ cấu hình khóa học hiện tại để hiển thị đầy đủ hơn
+            if (empty($schedule_end) && $schedule_idx >= 0 && $course_info && !empty($course_info->schedules)) {
+                // Convert object to array if needed, or access directly
+                $schedules_arr = is_array($course_info->schedules) ? $course_info->schedules : json_decode(json_encode($course_info->schedules), true);
+                if (isset($schedules_arr[$schedule_idx]['end'])) {
+                     $schedule_end = $schedules_arr[$schedule_idx]['end'];
+                }
+            }
+            
+            if (!empty($schedule_start)) {
+                // Trường hợp đã lưu lịch cụ thể
+                $start_formatted = date('d/m/Y', strtotime($schedule_start));
+                $label_html = $schedule_label ? "<strong>{$schedule_label}:</strong> " : "";
+                
+                if (!empty($schedule_end)) {
+                    $end_formatted = date('d/m/Y', strtotime($schedule_end));
+                    $course_time_info = "<div style='font-size:0.9em; color:#7f8c8d; margin-top:2px;'>{$label_html}📅 {$start_formatted} - {$end_formatted}</div>";
+                } else {
+                    $course_time_info = "<div style='font-size:0.9em; color:#7f8c8d; margin-top:2px;'>{$label_html}📅 Khai giảng: {$start_formatted}</div>";
+                }
+            } elseif ($course_info && !empty($course_info->start_date)) {
+                // Fallback về lịch chung của khóa học (nếu lead cũ chưa lưu lịch)
                 $start_formatted = date('d/m/Y', strtotime($course_info->start_date));
-                $end_formatted = date('d/m/Y', strtotime($course_info->end_date));
+                $end_formatted = !empty($course_info->end_date) ? date('d/m/Y', strtotime($course_info->end_date)) : '...';
                 $course_time_info = "<div style='font-size:0.9em; color:#7f8c8d; margin-top:2px;'>📅 {$start_formatted} - {$end_formatted}</div>";
             }
+            
             $output .= "<td><div style='font-weight:bold;'>" . esc_html($course_display_name) . "</div>{$course_time_info}</td>";
             
             // Hiển thị thông tin cọc, hoàn cọc hoặc hủy

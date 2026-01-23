@@ -58,13 +58,19 @@ function cf7_handle_course_create() {
     // Lấy duration (số buổi) nhập thủ công
     $duration = isset($_POST['duration']) ? sanitize_text_field($_POST['duration']) : '';
     
-    // ✅ FIX: Tạo schedules từ start_date và end_date
-    $schedules = [];
-    if (!empty($start_date) && !empty($end_date)) {
-        $schedules[] = [
-            'start' => $start_date,
-            'end' => $end_date
-        ];
+    // ✅ FIX: Lấy schedules từ POST
+    $schedules_json = isset($_POST['schedules']) ? stripslashes($_POST['schedules']) : '[]';
+    $schedules = json_decode($schedules_json, true);
+    
+    if (!is_array($schedules) || empty($schedules)) {
+        if (!empty($start_date) && !empty($end_date)) {
+            $schedules = [[
+                'start' => $start_date,
+                'end' => $end_date
+            ]];
+        } else {
+            $schedules = [];
+        }
     }
     
     $course_data = [
@@ -129,24 +135,18 @@ function cf7_handle_course_update() {
     // Lấy duration (số buổi) nhập thủ công
     $duration = isset($_POST['duration']) ? sanitize_text_field($_POST['duration']) : '';
     
-    // ✅ FIX: Cập nhật schedules khi start_date hoặc end_date thay đổi
-    $old_schedules = $old_data['schedules'] ?? [];
-    $new_schedules = $old_schedules;
+    // ✅ FIX: Lấy schedules từ POST
+    $schedules_json = isset($_POST['schedules']) ? stripslashes($_POST['schedules']) : '[]';
+    $new_schedules = json_decode($schedules_json, true);
     
-    // Nếu start_date hoặc end_date thay đổi, cập nhật schedule đầu tiên
-    if (!empty($start_date) && !empty($end_date)) {
-        if (empty($new_schedules)) {
-            // Nếu chưa có schedules, tạo mới
-            $new_schedules[] = [
+    if (!is_array($new_schedules) || empty($new_schedules)) {
+        if (!empty($start_date) && !empty($end_date)) {
+            $new_schedules = [[
                 'start' => $start_date,
                 'end' => $end_date
-            ];
+            ]];
         } else {
-            // Cập nhật schedule đầu tiên
-            $new_schedules[0] = [
-                'start' => $start_date,
-                'end' => $end_date
-            ];
+            $new_schedules = $old_data['schedules'] ?? [];
         }
     }
     
@@ -488,7 +488,7 @@ function cf7_display_course_table_row($atts) {
         $output .= '<td><strong>' . esc_html($course_name) . '</strong><br><small style="color:#7f8c8d;">👨‍🎓 ' . number_format($student_count) . ' học viên</small></td>';
         $output .= '<td>' . esc_html($duration) . '</td>';
         $output .= '<td>' . esc_html($start_date_display) . '</td>';
-        $output .= '<td>' . esc_html($end_date_display) . '</td>';
+        // $output .= '<td>' . esc_html($end_date_display) . '</td>'; // Ẩn ngày kết thúc theo yêu cầu
         $output .= '<td><span class="course-status-label ' . esc_attr($status_class) . '">' . esc_html($course_status) . '</span></td>';
         
         // Cột thao tác
@@ -594,12 +594,13 @@ function cf7_course_modal_html() {
                     <input type="text" id="cf7-course-duration" placeholder="Ví dụ: 10 buổi, 12 buổi..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                 </div>
                 <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Ngày bắt đầu *</label>
-                    <input type="date" id="cf7-course-start-date" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
-                </div>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Ngày kết thúc *</label>
-                    <input type="date" id="cf7-course-end-date" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Lịch khai giảng *</label>
+                    <div id="cf7-schedule-container" style="border:1px solid #ddd; padding:15px; border-radius:6px; background:#f8f9fa;">
+                        <div id="cf7-schedule-list"></div>
+                        <button type="button" onclick="cf7_add_schedule_row()" style="margin-top:10px; padding:8px 15px; background:#2ecc71; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:5px;">
+                            <span>➕</span> Thêm lịch học
+                        </button>
+                    </div>
                 </div>
                 <div style="margin-bottom:20px;">
                     <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Mô tả khóa học (tùy chọn)</label>
@@ -619,10 +620,91 @@ function cf7_course_js() {
     $ajax_url = admin_url('admin-ajax.php');
     $nonce = wp_create_nonce('cf7_course_nonce');
     return '
+    <style>
+        /* ✅ CSS chuẩn hóa bảng khóa học - Fix Header Alignment */
+        .cf7-course-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            margin-top: 10px;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            table-layout: auto !important; /* Để trình duyệt tự căn chỉnh độ rộng cột */
+        }
+        .cf7-course-table thead tr {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+            width: 100% !important;
+            display: table-row !important;
+        }
+        .cf7-course-table th {
+            color: #fff !important;
+            padding: 15px 12px !important;
+            text-align: left !important;
+            font-weight: 600 !important;
+            text-transform: none !important;
+            font-size: 13px !important; /* Giảm size theo yêu cầu */
+            border: none !important;
+            white-space: nowrap;
+        }
+        .cf7-course-table tbody td {
+            padding: 20px 15px !important; /* Đồng bộ padding với bảng học viên */
+            border-bottom: 1px solid #f1f2f6 !important;
+            vertical-align: middle !important;
+            color: #34495e;
+            font-size: 14px;
+        }
+        .cf7-course-table tr:last-child td {
+            border-bottom: none !important;
+        }
+        .cf7-course-table tr:hover td {
+            background-color: #f8f9fa;
+        }
+        
+        /* Badge trạng thái */
+        .course-status-label {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .course-status-upcoming { background: #e3f2fd; color: #2196f3; }
+        .course-status-ongoing { background: #e8f5e9; color: #2ecc71; }
+        .course-status-completed { background: #f5f5f5; color: #9e9e9e; }
+    </style>
     <script>
     var CF7_AJAX_URL = "' . esc_js($ajax_url) . '";
     var CF7_NONCE = "' . esc_js($nonce) . '";
         
+    // Helper thêm dòng lịch học
+    window.cf7_add_schedule_row = function(start = "", end = "") {
+        var list = document.getElementById("cf7-schedule-list");
+        var id = "schedule-" + Date.now() + Math.random().toString(36).substr(2, 9);
+        
+        var row = document.createElement("div");
+        row.className = "schedule-row";
+        row.id = id;
+        row.style.display = "flex";
+        row.style.gap = "10px";
+        row.style.marginBottom = "10px";
+        row.style.alignItems = "flex-end";
+        
+        row.innerHTML = `
+            <div style="flex:1;">
+                <label style="display:block; font-size:12px; margin-bottom:2px; color:#7f8c8d;">Bắt đầu</label>
+                <input type="date" class="schedule-start" value="${start}" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+            </div>
+            <div style="flex:1;">
+                <label style="display:block; font-size:12px; margin-bottom:2px; color:#7f8c8d;">Kết thúc</label>
+                <input type="date" class="schedule-end" value="${end}" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+            </div>
+            <button type="button" onclick="document.getElementById(\'${id}\').remove()" style="padding:8px 10px; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer; height:35px;" title="Xóa lịch này">🗑️</button>
+        `;
+        
+        list.appendChild(row);
+    };
+
     // Mở modal
         window.cf7_open_course_modal = function(courseKey) {
         console.log("🔓 Opening modal, courseKey:", courseKey);
@@ -635,235 +717,144 @@ function cf7_course_js() {
             
             if (!modal || !form) {
                 if (retries < 10) {
-                    console.log("⏳ Waiting for modal/form... (retry " + (retries + 1) + "/10)");
                     setTimeout(function() {
                         findModalAndForm(retries + 1);
                     }, 100);
                     return;
                 } else {
-                    console.error("❌ Modal or form not found after 10 retries!");
-                    alert("Lỗi: Không tìm thấy modal hoặc form. Vui lòng đảm bảo shortcode [course_modal_js] đã được thêm vào trang và refresh lại.");
+                    alert("Lỗi: Không tìm thấy modal hoặc form. Vui lòng refresh lại trang.");
                     return;
                 }
             }
             
-            // Tìm thấy modal và form, tiếp tục xử lý
             openModalWithElements(modal, form, courseKey);
             }
             
-        // Hàm mở modal sau khi tìm thấy elements
         function openModalWithElements(modal, form, courseKey) {
-            console.log("✅ Modal and form found!");
             var action = document.getElementById("cf7-course-action");
             var title = document.getElementById("cf7-modal-title");
                 
                 if (courseKey) {
                 // Chế độ sửa
-                console.log("📝 Edit mode for:", courseKey);
                     action.value = "update";
                     title.textContent = "Sửa Khóa Học";
                     var keyInput = document.getElementById("cf7-course-key");
                 var keyHidden = document.getElementById("cf7-course-key-hidden");
-                    if (keyInput) {
-                        keyInput.disabled = true;
-                }
-                if (keyHidden) {
-                    keyHidden.value = courseKey;
-                    }
+                    if (keyInput) keyInput.disabled = true;
+                if (keyHidden) keyHidden.value = courseKey;
                     
-                // Lấy dữ liệu khóa học
                 var formData = new FormData();
                 formData.append("action", "cf7_course_get");
                 formData.append("_ajax_nonce", CF7_NONCE);
                 formData.append("course_key", courseKey);
                     
-                fetch(CF7_AJAX_URL, {
-                    method: "POST",
-                    body: formData
-                })
+                fetch(CF7_AJAX_URL, { method: "POST", body: formData })
                 .then(response => response.json())
                     .then(data => {
-                    console.log("📦 GET Response:", data);
-                    
                         if (data.success && data.data) {
                         var course = data.data;
-                        
                         document.getElementById("cf7-course-key").value = course.course_key || courseKey;
                         document.getElementById("cf7-course-name").value = course.course_name || "";
                         document.getElementById("cf7-course-price").value = course.price || 0;
                         document.getElementById("cf7-course-duration").value = course.duration || "";
-                        document.getElementById("cf7-course-start-date").value = course.start_date || "";
-                        document.getElementById("cf7-course-end-date").value = course.end_date || "";
                         document.getElementById("cf7-course-description").value = course.description || "";
                         
-                        modal.style.display = "flex";
-                        modal.style.visibility = "visible";
-                        modal.setAttribute("aria-hidden", "false");
+                        document.getElementById("cf7-schedule-list").innerHTML = "";
+                        var schedules = course.schedules || [];
                         
-                        // Đảm bảo handler được attach sau khi modal hiển thị
-                        setTimeout(function() {
-                            attachFormSubmitHandler();
-                        }, 50);
+                        if (schedules.length > 0) {
+                            schedules.forEach(function(sch) { cf7_add_schedule_row(sch.start, sch.end); });
+                        } else {
+                            cf7_add_schedule_row(course.start_date || "", course.end_date || "");
+                        }
+                        
+                        modal.style.display = "flex";
+                        setTimeout(function() { attachFormSubmitHandler(); }, 50);
                         } else {
                         alert("Không thể tải thông tin khóa học.");
                         }
                     })
-                .catch(error => {
-                    console.error("❌ GET Error:", error);
-                    alert("Có lỗi xảy ra khi tải thông tin khóa học.");
-                    });
+                .catch(error => { console.error(error); alert("Có lỗi xảy ra khi tải thông tin khóa học."); });
                 } else {
                 // Chế độ thêm mới
-                console.log("➕ Create mode");
                     action.value = "create";
                     title.textContent = "Thêm Khóa Học";
                     var keyInput = document.getElementById("cf7-course-key");
                 var keyHidden = document.getElementById("cf7-course-key-hidden");
-                    if (keyInput) {
-                        keyInput.disabled = false;
-                    }
-                if (keyHidden) {
-                    keyHidden.value = "";
-                }
+                    if (keyInput) keyInput.disabled = false;
+                if (keyHidden) keyHidden.value = "";
                 
                         form.reset();
+                document.getElementById("cf7-schedule-list").innerHTML = "";
+                cf7_add_schedule_row();
                     modal.style.display = "flex";
-                modal.style.visibility = "visible";
-                modal.setAttribute("aria-hidden", "false");
-                
-                // Đảm bảo handler được attach sau khi modal hiển thị
-                setTimeout(function() {
-                    attachFormSubmitHandler();
-                }, 50);
+                setTimeout(function() { attachFormSubmitHandler(); }, 50);
             }
         }
         
-        // Bắt đầu tìm modal và form
         findModalAndForm(0);
     };
     
     // Đóng modal
         window.cf7_close_course_modal = function() {
-        console.log("🚪 Closing modal...");
             var modal = document.getElementById("cf7-course-modal");
-            if (modal) {
-                modal.style.display = "none";
-            modal.style.visibility = "hidden";
-            modal.setAttribute("aria-hidden", "true");
-            console.log("✅ Modal closed");
-            }
+            if (modal) modal.style.display = "none";
         };
         
     // Sửa khóa học
-    window.cf7_edit_course = function(courseKey) {
-        cf7_open_course_modal(courseKey);
-        };
+    window.cf7_edit_course = function(courseKey) { cf7_open_course_modal(courseKey); };
         
     // Xóa khóa học
     window.cf7_delete_course = function(courseKey) {
-        if (!confirm("Bạn có chắc chắn muốn xóa khóa học này?")) {
-            return;
-        }
-            
+        if (!confirm("Bạn có chắc chắn muốn xóa khóa học này?")) return;
         var formData = new FormData();
         formData.append("action", "cf7_course_delete");
         formData.append("_ajax_nonce", CF7_NONCE);
         formData.append("course_key", courseKey);
-            
-        fetch(CF7_AJAX_URL, {
-            method: "POST",
-            body: formData
-        })
+        fetch(CF7_AJAX_URL, { method: "POST", body: formData })
         .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                alert("Xóa khóa học thành công!");
-                    location.reload();
-                } else {
-                alert(data.data.message || "Không thể xóa khóa học.");
-                }
+                if (data.success) { alert("Xóa khóa học thành công!"); location.reload(); }
+                else { alert(data.data.message || "Không thể xóa khóa học."); }
             })
-        .catch(error => {
-            console.error("Delete error:", error);
-            alert("Có lỗi xảy ra khi xóa khóa học.");
-            });
+        .catch(error => { console.error(error); alert("Có lỗi xảy ra khi xóa khóa học."); });
         };
         
     // Hàm attach form submit handler
     function attachFormSubmitHandler() {
             var form = document.getElementById("cf7-course-form");
+        if (!form) return false;
+        if (form.hasAttribute("data-submit-handler-attached")) return true;
         
-        if (!form) {
-            console.warn("⚠️ Form not found yet");
-            return false;
-        }
-        
-        // Kiểm tra xem đã attach chưa
-        if (form.hasAttribute("data-submit-handler-attached")) {
-            console.log("✅ Form handler already attached");
-            return true;
-        }
-        
-        console.log("✅ Form found, attaching submit handler...");
         form.setAttribute("data-submit-handler-attached", "true");
-        
-        // Sử dụng capture phase để chạy TRƯỚC Contact Form 7
                 form.addEventListener("submit", function(e) {
-            console.log("=== 🚀 FORM SUBMIT STARTED ===");
+            e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
             
-            // Ngăn tất cả các handler khác (bao gồm Contact Form 7)
-                    e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            
-            console.log("✅ Event prevented and stopped");
-            
-            // Lấy action
-            var actionEl = document.getElementById("cf7-course-action");
-            if (!actionEl) {
-                console.error("❌ Action element not found");
-                alert("Lỗi: Không tìm thấy action.");
-                return false;
-            }
-            
-            var action = actionEl.value;
-            console.log("📝 Action:", action);
-            
-            // Lấy course_key
-            var courseKey;
-            if (action === "update") {
-                var keyHidden = document.getElementById("cf7-course-key-hidden");
-                courseKey = keyHidden ? keyHidden.value : document.getElementById("cf7-course-key").value.trim();
-            } else {
-                courseKey = document.getElementById("cf7-course-key").value.trim();
-            }
-            
+            var action = document.getElementById("cf7-course-action").value;
+            var courseKey = (action === "update") ? document.getElementById("cf7-course-key-hidden").value : document.getElementById("cf7-course-key").value.trim();
             var courseName = document.getElementById("cf7-course-name").value.trim();
             var price = document.getElementById("cf7-course-price").value || 0;
             var duration = document.getElementById("cf7-course-duration").value.trim();
-            var startDate = document.getElementById("cf7-course-start-date").value;
-            var endDate = document.getElementById("cf7-course-end-date").value;
             var description = document.getElementById("cf7-course-description").value || "";
             
-            console.log("📦 Data:", {
-                courseKey: courseKey,
-                courseName: courseName,
-                price: price,
-                startDate: startDate,
-                endDate: endDate
+            var scheduleRows = document.querySelectorAll(".schedule-row");
+            var schedules = [];
+            scheduleRows.forEach(function(row) {
+                var s = row.querySelector(".schedule-start").value;
+                var e = row.querySelector(".schedule-end").value;
+                if (s && e) schedules.push({start: s, end: e});
             });
             
-            // Validate
-            if (!courseKey || !courseName || !startDate || !endDate) {
-                console.error("❌ Validation failed");
-                alert("Vui lòng điền đầy đủ thông tin bắt buộc.");
+            var startDate = schedules.length > 0 ? schedules[0].start : "";
+            var endDate = schedules.length > 0 ? schedules[0].end : "";
+            
+            if (!courseKey || !courseName || schedules.length === 0) {
+                alert("Vui lòng điền đầy đủ thông tin bắt buộc và ít nhất một lịch học.");
                 return false;
             }
             
-            // Tạo FormData
             var formData = new FormData();
-            var ajaxAction = action === "create" ? "cf7_course_create" : "cf7_course_update";
-            formData.append("action", ajaxAction);
+            formData.append("action", action === "create" ? "cf7_course_create" : "cf7_course_update");
             formData.append("_ajax_nonce", CF7_NONCE);
             formData.append("course_key", courseKey);
             formData.append("course_name", courseName);
@@ -871,126 +862,108 @@ function cf7_course_js() {
             formData.append("duration", duration);
             formData.append("start_date", startDate);
             formData.append("end_date", endDate);
+            formData.append("schedules", JSON.stringify(schedules));
             formData.append("description", description);
             
-            console.log("📤 Sending AJAX:", ajaxAction);
-            
-            // Disable button
             var submitBtn = form.querySelector("button[type=submit]");
             var originalBtnText = submitBtn ? submitBtn.textContent : "Lưu";
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = "Đang xử lý...";
-                console.log("🔒 Button disabled");
-            }
+            if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "Đang xử lý..."; }
             
-            // Gửi request
-            fetch(CF7_AJAX_URL, {
-                method: "POST",
-                body: formData
-            })
-            .then(function(response) {
-                console.log("📡 Response status:", response.status);
-                if (!response.ok) {
-                    throw new Error("HTTP " + response.status);
-                }
-                return response.json();
-            })
+            fetch(CF7_AJAX_URL, { method: "POST", body: formData })
+            .then(function(response) { return response.json(); })
             .then(function(data) {
-                console.log("📥 Response data:", data);
-                console.log("📊 data.success:", data.success);
-                console.log("📊 typeof data.success:", typeof data.success);
-                
-                // DEBUG: Kiểm tra nhiều trường hợp
-                var isSuccess = false;
-                if (data.success === true || data.success === "true" || data.success === 1) {
-                    isSuccess = true;
-                }
-                
-                console.log("✅ isSuccess:", isSuccess);
-                
+                var isSuccess = (data.success === true || data.success === "true" || data.success === 1);
                 if (isSuccess) {
-                    var message = "Thành công!";
-                    if (data.data && data.data.message) {
-                        message = data.data.message;
-                    }
-                    
-                    console.log("🎉 SUCCESS! Message:", message);
-                    
-                    // Đóng modal NGAY LẬP TỨC
-                    console.log("🚪 Closing modal immediately...");
-                    var modal = document.getElementById("cf7-course-modal");
-                    if (modal) {
-                        modal.style.display = "none";
-                        modal.style.visibility = "hidden";
-                        modal.setAttribute("aria-hidden", "true");
-                    }
                     window.cf7_close_course_modal();
-                    
-                    // Hiển thị thông báo và reload
-                    alert(message);
-                    
-                    console.log("🔄 Reloading page...");
-                            setTimeout(function() {
-                                location.reload();
-                    }, 300);
+                    alert(data.data && data.data.message ? data.data.message : "Thành công!");
+                            setTimeout(function() { location.reload(); }, 300);
                         } else {
-                    console.error("❌ FAILED");
-                    
-                    var errorMsg = "Có lỗi xảy ra.";
-                    if (data.data) {
-                        if (typeof data.data === "string") {
-                            errorMsg = data.data;
-                        } else if (data.data.message) {
-                            errorMsg = data.data.message;
-                        }
-                    }
-                    
-                    console.error("Error message:", errorMsg);
-                    alert(errorMsg);
-                    
-                    // Enable lại button
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalBtnText;
-                        console.log("🔓 Button enabled");
-                    }
+                    alert(data.data && data.data.message ? data.data.message : "Có lỗi xảy ra.");
+                    if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
                         }
                     })
             .catch(function(error) {
-                console.error("❌ Fetch Error:", error);
                 alert("Lỗi: " + error.message);
-                
-                // Enable lại button
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalBtnText;
-                }
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
             });
-            
             return false;
-        }, true); // Capture phase - chạy TRƯỚC các handler khác
-        
-        console.log("✅ Submit handler attached successfully");
+        }, true);
         return true;
     }
     
     // Khởi tạo khi DOM ready
     document.addEventListener("DOMContentLoaded", function() {
-        console.log("📋 DOM Content Loaded");
+        // ✅ Fix: Chuẩn hóa tiêu đề bảng và style + Auto Add Column
+        var ths = document.querySelectorAll("th");
+        var processedTables = new Set();
+
+        ths.forEach(function(th) {
+            var text = th.textContent.trim();
+            if (text.length > 1) {
+                var knownHeaders = ["TÊN KHÓA HỌC", "THỜI LƯỢNG", "NGÀY BẮT ĐẦU", "TRẠNG THÁI", "THAO TÁC", "HỌC VIÊN", "NGÀY", "KHÓA HỌC", "SỐ ĐIỆN THOẠI", "TRẠNG THÁI THANH TOÁN", "TRẠNG THÁI LEAD", "GHI CHÚ"];
+                
+                if (knownHeaders.includes(text.toUpperCase())) {
+                    // 1. Thêm class cho table cha để áp dụng CSS
+                    var table = th.closest("table");
+                    if (table) {
+                        table.classList.add("cf7-course-table");
+                        
+                        // ✅ FIX QUAN TRỌNG: Kiểm tra và thêm cột "Thao tác" nếu thiếu (chỉ làm 1 lần mỗi bảng)
+                        if (!processedTables.has(table)) {
+                            processedTables.add(table);
+                            
+                            var thead = table.querySelector("thead");
+                            var tbody = table.querySelector("tbody");
+                            
+                            if (thead && tbody) {
+                                // Tìm dòng header
+                                var headerRow = th.closest("tr");
+                                // Tìm dòng body đầu tiên để so sánh số lượng cột
+                                var bodyRow = tbody.querySelector("tr");
+                                
+                                if (headerRow && bodyRow) {
+                                    var hCells = headerRow.querySelectorAll("th");
+                                    var bCells = bodyRow.querySelectorAll("td");
+                                    
+                                    // Nếu header ít hơn body 1 cột (thường là cột Thao tác cuối cùng)
+                                    if (hCells.length < bCells.length) {
+                                        console.log("⚠️ Phát hiện thiếu cột header! Đang tự động thêm...");
+                                        var newTh = document.createElement("th");
+                                        newTh.textContent = "Thao tác";
+                                        newTh.style.color = "#fff";
+                                        newTh.style.padding = "15px 12px";
+                                        newTh.style.textAlign = "left";
+                                        newTh.style.fontWeight = "600";
+                                        newTh.style.fontSize = "13px";
+                                        headerRow.appendChild(newTh);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Format text header
+                    var lower = text.toLowerCase();
+                    th.textContent = lower.charAt(0).toUpperCase() + lower.slice(1);
+                    
+                    // 3. Force inline styles (phòng khi CSS class bị ghi đè)
+                    th.style.textTransform = "none";
+                    th.style.fontSize = "13px"; // Giảm size chữ
+                    th.style.fontWeight = "600";
+                    th.style.textAlign = "left"; // Căn trái để tránh lệch
+                    th.style.padding = "15px 12px";
+                }
+            }
+        });
         
-        // Thử attach ngay
         if (attachFormSubmitHandler()) {
             console.log("✅ Form handler attached on DOM ready");
         }
         
-        // Đóng modal khi click bên ngoài
             var modal = document.getElementById("cf7-course-modal");
             if (modal) {
                 modal.addEventListener("click", function(e) {
-                    if (e.target === modal) {
-                        cf7_close_course_modal();
-                    }
+                    if (e.target === modal) cf7_close_course_modal();
                 });
             }
     });
