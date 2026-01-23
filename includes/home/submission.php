@@ -569,6 +569,70 @@ function cf7_reset_form_and_message_after_submit() {
         border-radius: 2px;
     }
 
+    /* ✅ Custom Layout cho Form: Mỗi input 1 dòng, full width */
+    .cf7-custom-form {
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Đảm bảo mỗi group (thường là thẻ p trong CF7) xuống dòng và có khoảng cách */
+    .cf7-custom-form p {
+        margin-bottom: 20px;
+        display: block;
+        width: 100%;
+    }
+
+    /* Label nằm trên input */
+    .cf7-custom-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 15px;
+        text-align: left; /* Căn trái */
+    }
+
+    /* Input/Select/Textarea full width */
+    .cf7-custom-form input[type="text"],
+    .cf7-custom-form input[type="email"],
+    .cf7-custom-form input[type="tel"],
+    .cf7-custom-form input[type="date"],
+    .cf7-custom-form textarea,
+    .cf7-custom-form select {
+        width: 100%;
+        display: block;
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px; /* Bo tròn nhẹ */
+        box-sizing: border-box;
+        font-size: 15px;
+        background-color: #f9f9f9;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+        font-family: inherit;
+    }
+
+    /* Hiệu ứng focus */
+    .cf7-custom-form input:focus,
+    .cf7-custom-form textarea:focus,
+    .cf7-custom-form select:focus {
+        border-color: #0064E0;
+        background-color: #fff;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 100, 224, 0.1);
+    }
+
+    /* Placeholder color */
+    .cf7-custom-form input::placeholder,
+    .cf7-custom-form textarea::placeholder {
+        color: #aaa;
+    }
+
+    /* Wrapper cho input (nếu CF7 thêm span) */
+    .cf7-custom-form .wpcf7-form-control-wrap {
+        display: block;
+        width: 100%;
+    }
+
     /* ✅ Style cho button submit của CF7 giống với button đăng ký */
     .wpcf7-form .wpcf7-submit {
         width: 100%;
@@ -742,8 +806,8 @@ function cf7_send_to_telegram() {
                     'schedule_label' => ''
                 ];
                 
-                // Nếu chọn schedule cụ thể
                 if ($schedule_index >= 0 && !empty($course_data['schedules'][$schedule_index])) {
+                    // Case 1: Có chọn schedule cụ thể
                     $sch = $course_data['schedules'][$schedule_index];
                     $course_info['start_date'] = $sch['start'] ?? '';
                     $course_info['end_date'] = $sch['end'] ?? '';

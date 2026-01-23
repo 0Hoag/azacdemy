@@ -16,6 +16,8 @@ require_once CF7_TELE_PATH . 'includes/home/submission.php';
 require_once CF7_TELE_PATH . 'includes/home/outstanding-course.php';
 require_once CF7_TELE_PATH . 'includes/ma/student-ma.php';
 require_once CF7_TELE_PATH . 'includes/ma/course-ma.php';
+require_once CF7_TELE_PATH . 'includes/landing/landing-face.php';
+require_once CF7_TELE_PATH . 'includes/landing/landing-google.php';
 
 // Kích hoạt tạo bảng khi plugin được activate
 register_activation_hook(__FILE__, 'cf7_registration_data');
