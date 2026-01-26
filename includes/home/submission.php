@@ -466,7 +466,16 @@ function cf7_standard_form_assets() {
         true
     );
     
-    // Pass AJAX URL
+    // Landing JS
+    if ( is_page_template('page-templates/landing-page.php') || is_page_template('page-templates/landing-page-new.php') ) {
+        wp_enqueue_script('cf7-landing-script', plugins_url('../../assets/js/landing.js', __FILE__), ['jquery'], '1.1.4', true);
+        
+        wp_localize_script('cf7-landing-script', 'cf7_ajax_obj', [
+            'ajax_url' => admin_url('admin-ajax.php')
+        ]);
+    }
+
+    // Pass AJAX URL for standard form
     wp_localize_script('cf7-standard-form-script', 'cf7_ajax_obj', [
         'ajax_url' => admin_url('admin-ajax.php')
     ]);
