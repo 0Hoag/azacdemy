@@ -657,8 +657,10 @@ function cf7_get_table_rows_combined() {
     });
     </script>';
 
-    $base_url = remove_query_arg(['cf7_lead_id', 'cf7_new_status', 'cf7_nonce', 'cf7_period', 'cf7_date', 'cf7_course', 'cf7_page']);
+    $base_url = remove_query_arg(['cf7_lead_id', 'cf7_new_status', 'cf7_nonce', 'cf7_period', 'cf7_date', 'cf7_course', 'cf7_status', 'cf7_page']);
     $periods = ['day' => 'Hôm nay', 'week' => 'Tuần này', 'month' => 'Tháng này', 'year' => 'Năm nay', 'all' => 'Tất cả'];
+    
+    $filter_status = isset($_GET['cf7_status']) ? sanitize_text_field(wp_unslash($_GET['cf7_status'])) : '';
 
     $output .= "<tr class='quan-ly-filter-row'><td colspan='8'>";
     $output .= "<div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;'>";
@@ -678,6 +680,18 @@ function cf7_get_table_rows_combined() {
                 $output .= "<option value='".esc_attr($c->course_key)."' ".selected($filter_course, $c->course_key, false).">".esc_html($c->course_name)."</option>";
             }
     $output .= "</select></div>";
+    
+    // --- TOOLBAR: DROPDOWN TRẠNG THÁI ---
+    $output .= "<div class='quan-ly-statusfilter'>
+        <select id='cf7_filter_status' onchange='cf7_exec_combined_filter()' style='padding:6px 12px; border:1px solid #d0e6ff; border-radius:999px; font-size:13px; outline:none; background:#f4f8ff; cursor:pointer;'>
+            <option value=''>-- Tất cả trạng thái --</option>
+            <option value='unpaid' ".selected($filter_status, 'unpaid', false).">Chờ xử lý (Mới)</option>
+            <option value='deposit' ".selected($filter_status, 'deposit', false).">Đã cọc</option>
+            <option value='paid' ".selected($filter_status, 'paid', false).">Hoàn thành</option>
+             <option value='refund' ".selected($filter_status, 'refund', false).">Hoàn cọc</option>
+            <option value='cancel' ".selected($filter_status, 'cancel', false).">Hủy</option>
+        </select>
+    </div>";
 
     // --- TOOLBAR: TABS THỜI GIAN ---
     $output .= "<div class='quan-ly-filter-tabs'>";
@@ -693,9 +707,13 @@ function cf7_get_table_rows_combined() {
         function cf7_exec_combined_filter() {
             var date = document.getElementById('cf7_filter_date').value;
             var course = document.getElementById('cf7_filter_course').value;
+            var status = document.getElementById('cf7_filter_status').value;
             var url = new URL(window.location.href);
+            
             if(date) { url.searchParams.set('cf7_date', date); url.searchParams.delete('cf7_period'); } else { url.searchParams.delete('cf7_date'); }
             if(course) url.searchParams.set('cf7_course', course); else url.searchParams.delete('cf7_course');
+            if(status) url.searchParams.set('cf7_status', status); else url.searchParams.delete('cf7_status');
+            
             url.searchParams.delete('cf7_page'); // Reset về trang 1 khi lọc
             window.location.href = url.href;
         }
@@ -724,6 +742,10 @@ function cf7_get_table_rows_combined() {
         // Lọc theo search
         if ($search_name !== '' && stripos(vietnamese_to_alias($u_name), $search_alias) === false) continue;
         if ($filter_course !== '' && $c_key !== $filter_course) continue;
+        
+        // Lọc theo Status
+        $current_status = $val['payment']['status'] ?? 'unpaid';
+        if ($filter_status !== '' && $current_status !== $filter_status) continue;
 
             $stats = $val['stats_meta'] ?? [];
             $include = true;
