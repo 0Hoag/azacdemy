@@ -445,7 +445,7 @@ function cf7_standard_form_assets() {
         'cf7-form-style', 
         plugins_url('../../assets/css/cf7-form.css', __FILE__), 
         [], 
-        '1.1.4'
+        time() // Force reload CSS
     );
 
     // Enqueue Common Form CSS (Reset & Success Message)
@@ -453,7 +453,7 @@ function cf7_standard_form_assets() {
         'cf7-form-script', 
         plugins_url('../../assets/js/cf7-form.js', __FILE__), 
         [], 
-        '1.1.4', 
+        time(), // Force reload JS
         true
     );
 
@@ -462,18 +462,18 @@ function cf7_standard_form_assets() {
         'cf7-standard-form-script', 
         plugins_url('../../assets/js/cf7-standard-form.js', __FILE__), 
         [], 
-        '1.1.4', 
+        time(), // Force reload JS
         true
     );
     
-    // Landing JS
-    if ( is_page_template('page-templates/landing-page.php') || is_page_template('page-templates/landing-page-new.php') ) {
-        wp_enqueue_script('cf7-landing-script', plugins_url('../../assets/js/landing.js', __FILE__), ['jquery'], '1.1.4', true);
+    // Landing JS - Remove strict template check to ensure loading
+    // if ( is_page_template('page-templates/landing-page.php') || is_page_template('page-templates/landing-page-new.php') ) {
+        wp_enqueue_script('cf7-landing-script', plugins_url('../../assets/js/landing.js', __FILE__), ['jquery'], time(), true);
         
         wp_localize_script('cf7-landing-script', 'cf7_ajax_obj', [
             'ajax_url' => admin_url('admin-ajax.php')
         ]);
-    }
+    // }
 
     // Pass AJAX URL for standard form
     wp_localize_script('cf7-standard-form-script', 'cf7_ajax_obj', [
