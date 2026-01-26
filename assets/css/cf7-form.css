@@ -26,6 +26,19 @@
     border-radius: 2px;
 }
 
+/* ✅ FIX: Force Single Column Layout */
+.cf7-custom-form .form-row {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+.cf7-custom-form .form-group {
+    width: 100% !important;
+    display: block !important;
+    margin-bottom: 20px !important;
+}
+
 /* ✅ Custom Layout cho Form: Mỗi input 1 dòng, full width */
 .cf7-custom-form {
     width: 100%;
