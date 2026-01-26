@@ -416,9 +416,15 @@ function cf7_get_course_info_ajax() {
     
     // Xử lý schedules nếu có
     $schedules_list = [];
+    $today = date('Y-m-d'); // Lấy ngày hiện tại
+
     if (!empty($course_data['schedules']) && is_array($course_data['schedules'])) {
         foreach ($course_data['schedules'] as $idx => $sch) {
             if (empty($sch['start'])) continue;
+            
+            // ✅ Chỉ lấy lịch chưa bắt đầu (start_date >= today)
+            if ($sch['start'] < $today) continue;
+
             $schedules_list[] = [
                 'index' => $idx,
                 'start' => $sch['start'],
