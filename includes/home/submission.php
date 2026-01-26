@@ -445,15 +445,15 @@ function cf7_standard_form_assets() {
         'cf7-form-style', 
         plugins_url('../../assets/css/cf7-form.css', __FILE__), 
         [], 
-        '1.1.0'
+        '1.1.4'
     );
 
-    // Enqueue Common Form JS (Reset & Success Message)
+    // Enqueue Common Form CSS (Reset & Success Message)
     wp_enqueue_script(
         'cf7-form-script', 
         plugins_url('../../assets/js/cf7-form.js', __FILE__), 
         [], 
-        '1.1.0', 
+        '1.1.4', 
         true
     );
 
@@ -462,7 +462,7 @@ function cf7_standard_form_assets() {
         'cf7-standard-form-script', 
         plugins_url('../../assets/js/cf7-standard-form.js', __FILE__), 
         [], 
-        '1.1.0', 
+        '1.1.4', 
         true
     );
     

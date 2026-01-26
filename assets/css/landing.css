@@ -84,7 +84,7 @@
     height: 40px;
     background: #fff;
     border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
     font-size: 20px;
 }
 
@@ -132,8 +132,15 @@
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* CSS đồng bộ với bảng Quản lý */
@@ -143,15 +150,51 @@
     padding: 30px;
     background: #ffffff;
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
 }
-.form-row { display: flex; gap: 20px; margin-bottom: 15px; }
-.form-group { flex: 1; margin-bottom: 20px; display: flex; flex-direction: column; }
-.cf7-custom-form label { font-weight: 600; font-size: 14px; color: #34495e; margin-bottom: 8px; }
-.cf7-custom-form input, .cf7-custom-form select, .cf7-custom-form textarea {
-    width: 100%; padding: 12px; border: 1px solid #dcdfe6; border-radius: 8px; background: #f9fafc;
+
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
 }
-.cf7-custom-form input:focus { border-color: #3498db; background: #fff; outline: none; }
+
+.form-group {
+    flex: 1;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.cf7-custom-form label {
+    font-weight: 600;
+    font-size: 14px;
+    color: #34495e;
+    margin-bottom: 8px;
+}
+
+.cf7-custom-form input,
+.cf7-custom-form select,
+.cf7-custom-form textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #dcdfe6;
+    border-radius: 8px;
+    background: #f9fafc;
+}
+
+.cf7-custom-form input:focus {
+    border-color: #3498db;
+    background: #fff;
+    outline: none;
+}
+
 .cf7-custom-form input[type="submit"] {
-    background: #3498db; color: #fff; padding: 15px 40px; border: none; border-radius: 50px; cursor: pointer; font-weight: 600;
+    background: #3498db;
+    color: #fff;
+    padding: 15px 40px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 600;
 }
