@@ -16,7 +16,7 @@ add_action('wp_ajax_nopriv_cf7_course_get', 'cf7_handle_course_get');
 
 // Kiểm tra quyền admin
 function cf7_check_admin_permission() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         wp_send_json_error(['message' => 'Không có quyền truy cập.']);
         exit;
     }
@@ -267,7 +267,9 @@ function cf7_handle_course_get() {
 // Shortcode hiển thị thông tin tổng quan trong info bar
 add_shortcode('course_info_bar', 'cf7_display_course_info_bar');
 function cf7_display_course_info_bar($atts) {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || 
+        (!current_user_can('manage_options') && 
+         !current_user_can('view_admin_menu'))) {
         return '';
     }
 
@@ -301,7 +303,7 @@ function cf7_display_course_info_bar($atts) {
 // Shortcode hiển thị nút thêm khóa học
 add_shortcode('course_add_button', 'cf7_display_course_add_button');
 function cf7_display_course_add_button($atts) {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return '';
     }
     
@@ -313,7 +315,7 @@ function cf7_display_course_add_button($atts) {
 // Shortcode render modal và JavaScript (chỉ cần gọi 1 lần)
 add_shortcode('course_modal_js', 'cf7_display_course_modal_js');
 function cf7_display_course_modal_js($atts) {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return '';
     }
     
@@ -329,7 +331,7 @@ function cf7_display_course_modal_js($atts) {
 // ✅ FIX: Inject modal vào body ngay khi body mở (sớm nhất có thể)
 add_action('wp_body_open', 'cf7_inject_course_modal_body', 1);
 function cf7_inject_course_modal_body() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return;
     }
     
@@ -346,7 +348,7 @@ function cf7_inject_course_modal_body() {
 // ✅ FIX: Backup method - Inject modal vào footer nếu wp_body_open không có
 add_action('wp_footer', 'cf7_inject_course_modal_footer', 1);
 function cf7_inject_course_modal_footer() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return;
     }
     
@@ -363,7 +365,7 @@ function cf7_inject_course_modal_footer() {
 // Shortcode hiển thị nút thêm khóa học và bảng (backward compatibility)
 add_shortcode('course_table_wrapper', 'cf7_display_course_table_wrapper');
 function cf7_display_course_table_wrapper($atts) {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return '<div style="text-align:center; padding:20px;">Vui lòng đăng nhập Admin để xem.</div>';
     }
     
@@ -377,7 +379,7 @@ function cf7_display_course_table_wrapper($atts) {
 // Shortcode hiển thị TẤT CẢ các khóa học trong bảng
 add_shortcode('course_table_row', 'cf7_display_course_table_row');
 function cf7_display_course_table_row($atts) {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return '<tr><td colspan="6" style="text-align:center; padding:20px;">Vui lòng đăng nhập Admin để xem.</td></tr>';
     }
 

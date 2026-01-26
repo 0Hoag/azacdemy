@@ -37,36 +37,4 @@ function cf7_auto_check_tables() {
     if ($table_check !== $table_courses) {
         cf7_registration_data();
     }
-    
-    // Ensure Google Ads course exists
-    $google_course = $wpdb->get_row("SELECT id FROM {$table_courses} WHERE course_key = 'google-ads'");
-    if (!$google_course) {
-        $wpdb->insert($table_courses, [
-            'course_key' => 'google-ads',
-            'course_name' => 'Khóa học Google Ads',
-            'content' => 'Khi khách chủ động tìm bạn trên Google, nhiệm vụ của bạn chỉ là xuất hiện đúng lúc. Khóa học Google Ads giúp bạn đưa sản phẩm lên top tìm kiếm, tiếp cận đúng người đang cần mua – và biến lượt tìm kiếm thành lượt bán.',
-            'price' => 4900000,
-            'original_price' => 8400000,
-            'duration' => '12 buổi',
-            'start_date' => '2026-02-01',
-            'end_date' => '2026-02-28',
-            'schedules' => json_encode([['start' => '2026-02-01', 'end' => '2026-02-28']])
-        ]);
-    }
-
-    // Ensure Facebook Ads course exists
-    $facebook_course = $wpdb->get_row("SELECT id FROM {$table_courses} WHERE course_key = 'facebook-ads'");
-    if (!$facebook_course) {
-        $wpdb->insert($table_courses, [
-            'course_key' => 'facebook-ads',
-            'course_name' => 'Khóa học Facebook Ads',
-            'content' => 'Làm chủ công cụ quảng cáo Facebook Ads để tiếp cận hàng triệu khách hàng tiềm năng.',
-            'price' => 4500000,
-            'original_price' => 7500000,
-            'duration' => '10 buổi',
-            'start_date' => '2026-02-05',
-            'end_date' => '2026-03-05',
-            'schedules' => json_encode([['start' => '2026-02-05', 'end' => '2026-03-05']])
-        ]);
-    }
 }

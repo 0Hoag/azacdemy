@@ -4,7 +4,7 @@
 add_shortcode('cf7_revenue_stats', 'cf7_render_revenue_stats');
 
 function cf7_render_revenue_stats() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return '<div style="text-align:center; padding:20px;">Vui lòng đăng nhập Admin để xem thống kê.</div>';
     }
 

@@ -16,7 +16,7 @@ add_action('wp_ajax_nopriv_cf7_student_get', 'cf7_handle_student_get');
 
 // Kiểm tra quyền admin
 function cf7_check_student_admin_permission() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         wp_send_json_error(['message' => 'Không có quyền truy cập.']);
         exit;
     }
@@ -387,7 +387,7 @@ function cf7_process_overdue_leads() {
 
 // 2. HÀM HIỂN THỊ CHÍNH
 function cf7_get_table_rows_combined() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return '<tr><td colspan="8" style="text-align:center; padding:20px;">Vui lòng đăng nhập Admin để xem.</td></tr>';
     }
 
@@ -948,7 +948,7 @@ add_shortcode('danh_sach_hoc_vien_html', 'cf7_get_table_rows_combined');
 // ✅ Modal và JavaScript cho CRUD học viên
 add_action('wp_body_open', 'cf7_inject_student_modal_body', 1);
 function cf7_inject_student_modal_body() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return;
     }
     
@@ -963,7 +963,7 @@ function cf7_inject_student_modal_body() {
 
 add_action('wp_footer', 'cf7_inject_student_modal_footer', 1);
 function cf7_inject_student_modal_footer() {
-    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
         return;
     }
     
@@ -1305,8 +1305,8 @@ add_filter('wp_get_nav_menu_items', 'cf7_filter_menu_for_admin_only', 10, 3);
 
 function cf7_filter_menu_for_admin_only($items, $menu, $args) {
     
-    // 1. Nếu ĐÃ đăng nhập VÀ CÓ quyền Admin (manage_options) -> Cho hiện menu bình thường
-    if (is_user_logged_in() && current_user_can('manage_options')) {
+    // 1. Nếu ĐÃ đăng nhập VÀ CÓ quyền Admin (manage_options) HOẶC xem menu (view_admin_menu) -> Cho hiện menu bình thường
+    if (is_user_logged_in() && (current_user_can('manage_options') || current_user_can('view_admin_menu'))) {
         return $items;
     }
 

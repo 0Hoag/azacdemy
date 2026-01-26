@@ -666,8 +666,8 @@ function cf7_send_to_telegram() {
  */
 add_filter('wp_get_nav_menu_items', 'cf7_filter_course_menu_for_admin_only', 10, 3);
 function cf7_filter_course_menu_for_admin_only($items, $menu, $args) {
-    // 1. Nếu ĐÃ đăng nhập VÀ CÓ quyền Admin (manage_options) -> Cho hiện menu bình thường
-    if (is_user_logged_in() && current_user_can('manage_options')) {
+    // 1. Nếu ĐÃ đăng nhập VÀ CÓ quyền Admin (manage_options) HOẶC Quản lý (view_admin_menu) -> Cho hiện menu bình thường
+    if (is_user_logged_in() && (current_user_can('manage_options') || current_user_can('view_admin_menu'))) {
         return $items;
     }
 
