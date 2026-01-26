@@ -1,9 +1,11 @@
 /* ✅ Style cho tiêu đề form đăng ký */
 .form-main-title {
-    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; /* Font đơn giản, dễ nhìn */
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Font đơn giản, dễ nhìn */
     text-align: center;
     font-size: 26px;
-    color: #0064E0; /* Màu xanh đồng bộ */
+    color: #0064E0;
+    /* Màu xanh đồng bộ */
     margin-bottom: 25px;
     font-weight: 700;
     text-transform: uppercase;
@@ -11,6 +13,7 @@
     position: relative;
     padding-bottom: 15px;
 }
+
 .form-main-title::after {
     content: "";
     position: absolute;
@@ -43,7 +46,8 @@
     font-weight: 600;
     color: #333;
     font-size: 15px;
-    text-align: left; /* Căn trái */
+    text-align: left;
+    /* Căn trái */
 }
 
 /* Input/Select/Textarea full width */
@@ -57,7 +61,8 @@
     display: block;
     padding: 12px 15px;
     border: 1px solid #ddd;
-    border-radius: 8px; /* Bo tròn nhẹ */
+    border-radius: 8px;
+    /* Bo tròn nhẹ */
     box-sizing: border-box;
     font-size: 15px;
     background-color: #f9f9f9;
@@ -90,11 +95,13 @@
 /* ✅ Style cho button submit của CF7 giống với button đăng ký */
 .wpcf7-form .wpcf7-submit {
     width: 100%;
-    padding: 10px 15px !important; /* Chiều cao ~39px */
+    padding: 10px 15px !important;
+    /* Chiều cao ~39px */
     background: #0064E0 !important;
     color: #FFFFFF !important;
     border: none !important;
-    border-radius: 50px !important; /* Bo tròn Pill shape */
+    border-radius: 50px !important;
+    /* Bo tròn Pill shape */
     font-weight: 700 !important;
     font-size: 15.52px !important;
     font-family: -apple-system, "system-ui", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
@@ -102,8 +109,10 @@
     transition: all 0.3s ease;
     box-sizing: border-box !important;
     margin-top: 10px;
-    text-transform: none !important; /* Không bắt buộc viết hoa */
+    text-transform: none !important;
+    /* Không bắt buộc viết hoa */
 }
+
 .wpcf7-form .wpcf7-submit:hover {
     background: #0056b3 !important;
     box-shadow: 0 5px 15px rgba(0, 100, 224, 0.4) !important;
@@ -127,9 +136,37 @@
     visibility: visible !important;
     opacity: 1 !important;
 }
+
 /* ✅ FIX: Đảm bảo text hiển thị ngay cả khi aria-hidden */
 .wpcf7-response-output.wpcf7-mail-sent-ok[aria-hidden="true"] {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
+}
+
+/* ✅ FIX: Responsive Mobile - Force 1 column layout */
+@media only screen and (max-width: 768px) {
+
+    .cf7-custom-form,
+    .cf7-custom-form p,
+    .cf7-custom-form label,
+    .cf7-custom-form .wpcf7-form-control-wrap,
+    .cf7-custom-form input[type="text"],
+    .cf7-custom-form input[type="email"],
+    .cf7-custom-form input[type="tel"],
+    .cf7-custom-form textarea,
+    .cf7-custom-form select {
+        width: 100% !important;
+        min-width: 100% !important;
+        display: block !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .cf7-custom-form p {
+        margin-bottom: 15px !important;
+        padding: 0 !important;
+        float: none !important;
+        clear: both !important;
+    }
 }

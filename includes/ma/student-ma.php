@@ -1305,14 +1305,11 @@ add_filter('wp_get_nav_menu_items', 'cf7_filter_menu_for_admin_only', 10, 3);
 
 function cf7_filter_menu_for_admin_only($items, $menu, $args) {
     
-    // 1. Nếu ĐÃ đăng nhập VÀ CÓ quyền Admin (manage_options) HOẶC xem menu (view_admin_menu) -> Cho hiện menu bình thường
     if (is_user_logged_in() && (current_user_can('manage_options') || current_user_can('view_admin_menu'))) {
         return $items;
     }
 
-    // 2. Nếu KHÔNG phải Admin: Duyệt qua danh sách menu và xóa nút Quản lý
     foreach ($items as $key => $item) {
-        // Kiểm tra tiêu đề nút - Ẩn cả "Quản Lý Học Viên" và "Quản Lý Khóa Học" (và các biến thể)
         $title = $item->title ?? '';
         if ($title == 'Quản Lý Học Viên' || 
             $title == 'Quản Lý Khóa Học' || 
