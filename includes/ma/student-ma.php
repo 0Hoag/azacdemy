@@ -458,13 +458,18 @@ function cf7_get_table_rows_combined() {
         display: table-row !important;
     }
     .table-quan-ly thead th {
-        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+        background: #0064E0 !important; /* Solid color for consistency */
         color: #fff !important;
         padding: 15px 12px !important;
         text-align: left !important;
         font-weight: 600 !important;
         white-space: nowrap;
         text-transform: none !important;
+        border-right: 1px solid rgba(255,255,255,0.1);
+    }
+    .table-quan-ly time, .table-quan-ly th {
+         visibility: visible !important;
+         display: table-cell !important;
     }
     /* ✅ Tăng khoảng cách dòng cho thoáng */
     .table-quan-ly tbody td {
@@ -661,8 +666,9 @@ function cf7_get_table_rows_combined() {
     $periods = ['day' => 'Hôm nay', 'week' => 'Tuần này', 'month' => 'Tháng này', 'year' => 'Năm nay', 'all' => 'Tất cả'];
     
     $filter_status = isset($_GET['cf7_status']) ? sanitize_text_field(wp_unslash($_GET['cf7_status'])) : '';
-
-    $output .= "<tr class='quan-ly-filter-row'><td colspan='8'>";
+    
+    // Updated colspan to 7 (merged action columns)
+    $output .= "<tr class='quan-ly-filter-row'><td colspan='7'>";
     $output .= "<div style='display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;'>";
     $output .= "<div style='display:flex; align-items:center; gap:12px;'>";
     
@@ -887,20 +893,19 @@ function cf7_get_table_rows_combined() {
                 $refund_option = "<option value='refund' ".selected($status,'refund',false).">Hoàn cọc</option>";
             }
 
-            // ✅ Cột Thao tác: Dropdown trạng thái
+            // ✅ Cột Thao tác: Gộp Dropdown trạng thái và Nút Sửa vào 1 cột
             $output .= "<td style='vertical-align: middle; text-align: center;'>";
-            $output .= "<select class='change-status' onchange=\"" . $onchange . "\" style='padding: 0 10px; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 13px; cursor: pointer; background: #fff; height: 34px; line-height: 34px; vertical-align: middle; margin: 0; display: inline-block; box-sizing: border-box;'>
+            $output .= "<div style='display:flex; align-items:center; justify-content:center; gap:8px;'>";
+            $output .= "<select class='change-status' onchange=\"" . $onchange . "\" style='padding: 0 10px; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 13px; cursor: pointer; background: #fff; height: 34px; line-height: 34px; width: auto; box-sizing: border-box;'>
                 <option value='unpaid' ".selected($status,'unpaid',false).">Chờ xử lý</option>
                 <option value='deposit' ".selected($status,'deposit',false).">Đóng cọc</option>
                 <option value='paid' ".selected($status,'paid',false).">Hoàn thành</option>
                 " . $refund_option . "
                 <option value='cancel' ".selected($status,'cancel',false).">Hủy</option>
                 </select>";
-            $output .= "</td>";
             
-            // ✅ Cột Thao tác: Nút Sửa
-            $output .= "<td style='vertical-align: middle; text-align: center; white-space:nowrap;'>";
-            $output .= "<button type='button' onclick='cf7_edit_student(" . intval($row->id) . ")' style='padding: 0 12px; background:#0064E0; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; height: 34px; line-height: 34px; vertical-align: middle; margin: 0; display: inline-block; box-sizing: border-box; transition: all 0.3s ease;' onmouseover='this.style.background=\"#0056b3\"' onmouseout='this.style.background=\"#0064E0\"'>✏️ Sửa</button>";
+            $output .= "<button type='button' onclick='cf7_edit_student(" . intval($row->id) . ")' style='padding: 0 12px; background:#0064E0; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:12px; font-weight:600; height: 34px; line-height: 34px; transition: all 0.3s ease; margin-top: 8px;' onmouseover='this.style.background=\"#0056b3\"' onmouseout='this.style.background=\"#0064E0\"'>✏️ Sửa</button>";
+            $output .= "</div>";
             $output .= "</td>";
             
             $output .= "</tr>";
@@ -1342,4 +1347,54 @@ function cf7_filter_menu_for_admin_only($items, $menu, $args) {
     }
 
     return $items;
+}
+
+// ✅ SHORTCODE TỔNG HỢP GIAO DIỆN QUẢN LÝ HỌC VIÊN (Full Layout - Centered 1200px)
+add_shortcode('quan_ly_hoc_vien_html', 'cf7_render_student_management_ui');
+
+function cf7_render_student_management_ui() {
+    if (!is_user_logged_in() || (!current_user_can('manage_options') && !current_user_can('view_admin_menu'))) {
+        return '<div style="text-align:center; padding:20px;">Vui lòng đăng nhập Admin để xem.</div>';
+    }
+
+    ob_start();
+    ?>
+    <div class="quan-ly-container-fluid">
+        <div class="quan-ly-wrapper">
+            <h2 class="course-main-title">Hệ Thống Quản Lý Học Viên</h2>
+            
+            <div class="table-responsive">
+                <table class="table-quan-ly">
+                    <thead>
+                        <tr>
+                            <th class="col-date">Ngày</th>
+                            <th class="col-student">Học viên</th>
+                            <th class="col-course">Khóa học</th>
+                            <th class="col-deposit">Tiền cọc (20%) / Còn lại sau cọc</th>
+                            <th class="col-payment">Thanh toán / Còn phải đóng</th>
+                            <th class="col-status" style="min-width: 100px;">Trạng thái</th>
+                            <th class="col-action">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php echo do_shortcode('[danh_sach_hoc_vien_html]'); ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php 
+                // Inject Modal Footer manually if needed, usually auto-injected by footer hook
+                // But for safety in ajax loaded pages:
+                if (!did_action('wp_footer')) {
+                     echo cf7_student_modal_html() . cf7_student_js();
+                }
+            ?>
+        </div>
+    </div>
+    <style>
+    /* Reuse styles from shortcode or ensure they are present */
+    /* Check previous CSS block injection in [danh_sach_hoc_vien_html] */
+    </style>
+    <?php
+    return ob_get_clean();
 }

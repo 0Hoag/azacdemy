@@ -51,6 +51,16 @@ function cf7_render_highlight_courses($atts) {
                 if (empty($schedules) && (!empty($start_date) || !empty($end_date))) {
                     $schedules[] = ['start' => $start_date, 'end' => $end_date];
                 }
+                
+                // ✅ FILTER: Ẩn các lịch đã quá hạn (start_date < today)
+                if (!empty($schedules)) {
+                    $today_date = date('Y-m-d');
+                    foreach ($schedules as $k => $sc) {
+                        if (!empty($sc['start']) && $sc['start'] < $today_date) {
+                            unset($schedules[$k]);
+                        }
+                    }
+                }
             ?>
             <div class="course-card">
                 <h3 class="course-title"><?php echo esc_html($name); ?></h3>

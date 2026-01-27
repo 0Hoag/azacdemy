@@ -33,13 +33,13 @@ function cf7_populate_course_select($tag, $unused) {
         return $tag; // Không có khóa học nào
     }
     
-    // ✅ XÓA HOÀN TOÀN options cũ (kể cả options hard-code trong form CF7 admin)
+    // ✅ XÓA HOÀN TOÀN options cũ
     $tag->values = [];
     $tag->labels = [];
     
-    // Thêm option mặc định
-    $tag->values[] = '';
-    $tag->labels[] = '-- Chọn khóa học --';
+    // Không thêm option mặc định rỗng, để nó tự chọn cái đầu tiên
+    // $tag->values[] = '';
+    // $tag->labels[] = 'Chọn khóa học *';
     
     // ✅ CHỈ thêm các khóa học từ database
     foreach ($courses_raw as $row) {

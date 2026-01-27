@@ -37,6 +37,7 @@ function cf7_handle_course_create() {
     $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
     $end_date = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
     $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
+    $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'upcoming';
     
     if (empty($course_key) || empty($course_name)) {
         wp_send_json_error(['message' => 'Vui lòng điền đầy đủ thông tin.']);
@@ -62,6 +63,10 @@ function cf7_handle_course_create() {
     $schedules_json = isset($_POST['schedules']) ? stripslashes($_POST['schedules']) : '[]';
     $schedules = json_decode($schedules_json, true);
     
+    // Thu thập các trường mới
+    $original_price = isset($_POST['original_price']) ? floatval($_POST['original_price']) : 0;
+    $content = isset($_POST['content']) ? wp_kses_post($_POST['content']) : ''; // Nội dung HTML an toàn
+
     if (!is_array($schedules) || empty($schedules)) {
         if (!empty($start_date) && !empty($end_date)) {
             $schedules = [[
@@ -77,10 +82,13 @@ function cf7_handle_course_create() {
         'course_key' => $course_key,
         'course_name' => $course_name,
         'price' => $price,
+        'original_price' => $original_price, // Added
         'duration' => $duration,
         'start_date' => $start_date,
         'end_date' => $end_date,
         'description' => $description,
+        'content' => $content, // Added
+        'status' => $status,
         'schedules' => $schedules
     ];
     
@@ -111,7 +119,9 @@ function cf7_handle_course_update() {
     $price = isset($_POST['price']) ? floatval($_POST['price']) : 0;
     $start_date = isset($_POST['start_date']) ? sanitize_text_field($_POST['start_date']) : '';
     $end_date = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
+    $end_date = isset($_POST['end_date']) ? sanitize_text_field($_POST['end_date']) : '';
     $description = isset($_POST['description']) ? sanitize_textarea_field($_POST['description']) : '';
+    $status = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'upcoming';
     
     if (empty($course_key) || empty($course_name)) {
         wp_send_json_error(['message' => 'Vui lòng điền đầy đủ thông tin.']);
@@ -150,14 +160,21 @@ function cf7_handle_course_update() {
         }
     }
     
+    // Thu thập các trường mới (Update)
+    $original_price = isset($_POST['original_price']) ? floatval($_POST['original_price']) : ($old_data['original_price'] ?? 0);
+    $content = isset($_POST['content']) ? wp_kses_post($_POST['content']) : ($old_data['content'] ?? '');
+
     $course_data = [
         'course_key' => $course_key,
         'course_name' => $course_name,
         'price' => $price,
+        'original_price' => $original_price, // Added
         'duration' => $duration,
         'start_date' => $start_date,
         'end_date' => $end_date,
         'description' => $description,
+        'content' => $content, // Added
+        'status' => $status,
         'schedules' => $new_schedules
     ];
     
@@ -489,9 +506,9 @@ function cf7_display_course_table_row($atts) {
         $output .= '<tr data-course-key="' . esc_attr($course_key) . '">';
         $output .= '<td><strong>' . esc_html($course_name) . '</strong><br><small style="color:#7f8c8d;">👨‍🎓 ' . number_format($student_count) . ' học viên</small></td>';
         $output .= '<td>' . esc_html($duration) . '</td>';
-        $output .= '<td>' . esc_html($start_date_display) . '</td>';
+        // $output .= '<td>' . esc_html($start_date_display) . '</td>'; // Bỏ cột ngày bắt đầu
         // $output .= '<td>' . esc_html($end_date_display) . '</td>'; // Ẩn ngày kết thúc theo yêu cầu
-        $output .= '<td><span class="course-status-label ' . esc_attr($status_class) . '">' . esc_html($course_status) . '</span></td>';
+        // $output .= '<td><span class="course-status-label ' . esc_attr($status_class) . '">' . esc_html($course_status) . '</span></td>'; // Bỏ cột trạng thái, chuyển vào form
         
         // Cột thao tác
         $output .= '<td style="white-space:nowrap;">';
@@ -577,38 +594,52 @@ function cf7_course_modal_html() {
             <h3 id="cf7-modal-title" style="margin:0 0 20px 0; font-size:20px; color:#34495e;">Thêm Khóa Học</h3>
             <form id="cf7-course-form" onsubmit="return false;" action="#" method="post">
                 <input type="hidden" id="cf7-course-action" value="create">
-                <input type="hidden" id="cf7-course-key-hidden" name="course_key_hidden">
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Mã khóa học *</label>
-                    <input type="text" id="cf7-course-key" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
-                    <small style="color:#7f8c8d;">Ví dụ: wordpress, fullstack-php</small>
+            <input type="hidden" id="cf7-course-key-hidden" name="course_key_hidden">
+            
+            <div style="margin-bottom:15px; display:none;"> <!-- Ẩn Course Key -->
+                <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Mã khóa học (Slug) *</label>
+                <input type="text" id="cf7-course-key" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; background:#f9f9f9;" readonly>
+                <small style="color:#7f8c8d;">Mã này tự động tạo từ tên và không thể sửa sau khi tạo.</small>
+            </div>
+            
+            <div style="margin-bottom:15px;">
+                <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Tên khóa học *</label>
+                <input type="text" id="cf7-course-name" required oninput="cf7_slugify_create(this.value)" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+            </div>
+            
+            <div style="display:flex; gap:15px; margin-bottom:15px;">
+                <div style="flex:1;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Giá gốc (đ)</label>
+                    <input type="number" id="cf7-course-original-price" min="0" step="1000" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                 </div>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Tên khóa học *</label>
-                    <input type="text" id="cf7-course-name" required style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+                <div style="flex:1;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Giá bán (đ)</label>
+                    <input type="number" id="cf7-course-price" min="0" step="1000" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
                 </div>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Học phí (đ) *</label>
-                    <input type="number" id="cf7-course-price" required min="0" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
-                </div>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Số buổi học (tùy chọn)</label>
-                    <input type="text" id="cf7-course-duration" placeholder="Ví dụ: 10 buổi, 12 buổi..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
-                </div>
-                <div style="margin-bottom:15px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Lịch khai giảng *</label>
-                    <div id="cf7-schedule-container" style="border:1px solid #ddd; padding:15px; border-radius:6px; background:#f8f9fa;">
-                        <div id="cf7-schedule-list"></div>
-                        <button type="button" onclick="cf7_add_schedule_row()" style="margin-top:10px; padding:8px 15px; background:#2ecc71; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:13px; font-weight:600; display:flex; align-items:center; gap:5px;">
-                            <span>➕</span> Thêm lịch học
-                        </button>
-                    </div>
-                </div>
-                <div style="margin-bottom:20px;">
-                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Mô tả khóa học (tùy chọn)</label>
-                    <textarea id="cf7-course-description" rows="4" placeholder="Nhập mô tả về khóa học..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;"></textarea>
-                </div>
-                <div style="display:flex; gap:10px; justify-content:flex-end;">
+            </div>
+            
+            <div style="margin-bottom:15px;">
+                <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Thời lượng (Vd: 12 buổi)</label>
+                <input type="text" id="cf7-course-duration" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;">
+            </div>
+            
+            <div style="margin-bottom:20px;">
+                <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Lịch học & Trạng thái</label>
+                <div id="cf7-schedule-list" style="margin-bottom:10px;"></div>
+                <button type="button" onclick="cf7_add_schedule_row()" style="padding:8px 15px; background:#0064E0; color:#fff; border:none; border-radius:4px; font-size:13px; font-weight:600; cursor:pointer;">+ Thêm lịch học</button>
+            </div>
+            
+            <div style="margin-bottom:15px; display:none;"> <!-- Ẩn Mô Tả cũ -->
+                <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Mô tả ngắn</label>
+                <textarea id="cf7-course-description" rows="3" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;"></textarea>
+            </div>
+
+            <div style="margin-bottom:20px;">
+                <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Nội dung chi tiết (Content)</label>
+                <textarea id="cf7-course-content" rows="6" placeholder="Nhập nội dung chi tiết khóa học..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; font-family: monospace;"></textarea>
+            </div>
+            
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
                     <button type="button" onclick="cf7_close_course_modal()" style="padding:10px 20px; background:#95a5a6; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600;">Hủy</button>
                     <button type="submit" style="padding:10px 20px; background:#0064E0; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:600; transition:all 0.3s;" onmouseover="this.style.background=\'#0056b3\'" onmouseout="this.style.background=\'#0064E0\'">Lưu</button>
                 </div>
@@ -690,21 +721,67 @@ function cf7_course_js() {
         row.style.display = "flex";
         row.style.gap = "10px";
         row.style.marginBottom = "10px";
-        row.style.alignItems = "flex-end";
+        row.style.alignItems = "flex-end"; // Căn đáy để khớp với input
+        row.style.flexWrap = "nowrap"; 
         
         row.innerHTML = `
-            <div style="flex:1;">
-                <label style="display:block; font-size:12px; margin-bottom:2px; color:#7f8c8d;">Bắt đầu</label>
-                <input type="date" class="schedule-start" value="${start}" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+            <div style="flex:1; min-width: 130px;">
+                <label style="display:block; font-size:12px; margin-bottom:4px; color:#7f8c8d;">Bắt đầu</label>
+                <input type="date" class="schedule-start" value="${start}" required onchange="cf7_update_schedule_status(this)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; height: 38px; box-sizing: border-box;">
             </div>
-            <div style="flex:1;">
-                <label style="display:block; font-size:12px; margin-bottom:2px; color:#7f8c8d;">Kết thúc</label>
-                <input type="date" class="schedule-end" value="${end}" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+            <div style="flex:1; min-width: 130px;">
+                <label style="display:block; font-size:12px; margin-bottom:4px; color:#7f8c8d;">Kết thúc</label>
+                <input type="date" class="schedule-end" value="${end}" required onchange="cf7_update_schedule_status(this)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; height: 38px; box-sizing: border-box;">
             </div>
-            <button type="button" onclick="document.getElementById(\'${id}\').remove()" style="padding:8px 10px; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer; height:35px;" title="Xóa lịch này">🗑️</button>
+            
+            <div style="width: 110px;">
+                <label style="display:block; font-size:12px; margin-bottom:4px; opacity:0;">Trạng thái</label>
+                <div class="schedule-status" style="width:100%; height: 38px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; transform: translateY(-15px);">
+                    ...
+                </div>
+            </div>
+            
+            <button type="button" onclick="document.getElementById(\'${id}\').remove()" style="padding:0 10px; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer; height:38px;" title="Xóa lịch này">🗑️</button>
         `;
         
         list.appendChild(row);
+        
+        // Cập nhật trạng thái ngay khi thêm
+        setTimeout(function(){ 
+            var newRow = document.getElementById(id);
+            if(newRow) cf7_update_schedule_status(newRow.querySelector(".schedule-end")); 
+        }, 50);
+    };
+    
+    // Helper tính trạng thái lịch học
+    window.cf7_update_schedule_status = function(input) {
+        var row = input.closest(".schedule-row");
+        var startInput = row.querySelector(".schedule-start");
+        var endInput = row.querySelector(".schedule-end");
+        var statusDiv = row.querySelector(".schedule-status");
+        
+        var start = startInput.value;
+        var end = endInput.value;
+        
+        if (!start) {
+            statusDiv.innerHTML = \'<span style="color:#95a5a6;">Chờ ngày...</span>\';
+            return;
+        }
+        
+        var startDate = new Date(start);
+        var endDate = end ? new Date(end) : null;
+        var now = new Date();
+        now.setHours(0,0,0,0);
+        startDate.setHours(0,0,0,0);
+        if(endDate) endDate.setHours(23,59,59,999);
+        
+        if (now < startDate) {
+            statusDiv.innerHTML = \'<span style="color:#3498db;">🔵 Sắp mở</span>\';
+        } else if (endDate && now > endDate) {
+            statusDiv.innerHTML = \'<span style="color:#e74c3c;">🔴 Đã đóng</span>\';
+        } else {
+            statusDiv.innerHTML = \'<span style="color:#2ecc71;">🟢 Đang học</span>\';
+        }
     };
 
     // Mở modal
@@ -758,8 +835,11 @@ function cf7_course_js() {
                         document.getElementById("cf7-course-key").value = course.course_key || courseKey;
                         document.getElementById("cf7-course-name").value = course.course_name || "";
                         document.getElementById("cf7-course-price").value = course.price || 0;
+                        document.getElementById("cf7-course-original-price").value = course.original_price || 0; // Added
                         document.getElementById("cf7-course-duration").value = course.duration || "";
                         document.getElementById("cf7-course-description").value = course.description || "";
+                        document.getElementById("cf7-course-content").value = course.content || ""; // Added
+                        // document.getElementById("cf7-course-status").value = course.status || "upcoming";
                         
                         document.getElementById("cf7-schedule-list").innerHTML = "";
                         var schedules = course.schedules || [];
@@ -797,6 +877,17 @@ function cf7_course_js() {
         findModalAndForm(0);
     };
     
+    // Hàm slugify đơn giản cho frontend
+    window.cf7_slugify_create = function(text) {
+        var slug = text.toString().toLowerCase()
+            .replace(/\s+/g, "-")           // Replace spaces with -
+            .replace(/[^\w\-]+/g, "")       // Remove all non-word chars
+            .replace(/\-\-+/g, "-")         // Replace multiple - with single -
+            .replace(/^-+/, "")             // Trim - from start of text
+            .replace(/-+$/, "");            // Trim - from end of text
+        document.getElementById("cf7-course-key").value = slug;
+    };
+
     // Đóng modal
         window.cf7_close_course_modal = function() {
             var modal = document.getElementById("cf7-course-modal");
@@ -836,8 +927,11 @@ function cf7_course_js() {
             var courseKey = (action === "update") ? document.getElementById("cf7-course-key-hidden").value : document.getElementById("cf7-course-key").value.trim();
             var courseName = document.getElementById("cf7-course-name").value.trim();
             var price = document.getElementById("cf7-course-price").value || 0;
+            var originalPrice = document.getElementById("cf7-course-original-price").value || 0; // Added
             var duration = document.getElementById("cf7-course-duration").value.trim();
             var description = document.getElementById("cf7-course-description").value || "";
+            var content = document.getElementById("cf7-course-content").value || ""; // Added
+            // var status = document.getElementById("cf7-course-status").value;
             
             var scheduleRows = document.querySelectorAll(".schedule-row");
             var schedules = [];
@@ -861,11 +955,14 @@ function cf7_course_js() {
             formData.append("course_key", courseKey);
             formData.append("course_name", courseName);
             formData.append("price", price);
+            formData.append("original_price", originalPrice); // Added
             formData.append("duration", duration);
             formData.append("start_date", startDate);
             formData.append("end_date", endDate);
             formData.append("schedules", JSON.stringify(schedules));
             formData.append("description", description);
+            formData.append("content", content); // Added
+            // formData.append("status", status);
             
             var submitBtn = form.querySelector("button[type=submit]");
             var originalBtnText = submitBtn ? submitBtn.textContent : "Lưu";
@@ -905,10 +1002,25 @@ function cf7_course_js() {
                 var knownHeaders = ["TÊN KHÓA HỌC", "THỜI LƯỢNG", "NGÀY BẮT ĐẦU", "TRẠNG THÁI", "THAO TÁC", "HỌC VIÊN", "NGÀY", "KHÓA HỌC", "SỐ ĐIỆN THOẠI", "TRẠNG THÁI THANH TOÁN", "TRẠNG THÁI LEAD", "GHI CHÚ"];
                 
                 if (knownHeaders.includes(text.toUpperCase())) {
+                    // ✅ FIX: Ẩn cột Ngày bắt đầu và Trạng thái
+                    if (text.toUpperCase() === "NGÀY BẮT ĐẦU" || text.toUpperCase() === "TRẠNG THÁI") {
+                        th.style.display = "none";
+                    } else {
+                        // Chỉ style nếu không phải là cột ẩn
+                        var lower = text.toLowerCase();
+                        th.textContent = lower.charAt(0).toUpperCase() + lower.slice(1);
+                        th.style.textTransform = "none";
+                        th.style.fontSize = "13px"; 
+                        th.style.fontWeight = "600";
+                        th.style.textAlign = "left";
+                        th.style.padding = "15px 12px";
+                    }
+
                     // 1. Thêm class cho table cha để áp dụng CSS
                     var table = th.closest("table");
                     if (table) {
                         table.classList.add("cf7-course-table");
+
                         
                         // ✅ FIX QUAN TRỌNG: Kiểm tra và thêm cột "Thao tác" nếu thiếu (chỉ làm 1 lần mỗi bảng)
                         if (!processedTables.has(table)) {
@@ -944,16 +1056,8 @@ function cf7_course_js() {
                         }
                     }
 
-                    // 2. Format text header
-                    var lower = text.toLowerCase();
-                    th.textContent = lower.charAt(0).toUpperCase() + lower.slice(1);
-                    
-                    // 3. Force inline styles (phòng khi CSS class bị ghi đè)
-                    th.style.textTransform = "none";
-                    th.style.fontSize = "13px"; // Giảm size chữ
-                    th.style.fontWeight = "600";
-                    th.style.textAlign = "left"; // Căn trái để tránh lệch
-                    th.style.padding = "15px 12px";
+                    // 2. Format text header (Moved up)
+                    // 3. Force inline styles (Moved up)
                 }
             }
         });
