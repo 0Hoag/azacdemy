@@ -26,20 +26,23 @@ function cf7_render_revenue_stats() {
     }
 
     // --- XỬ LÝ LỌC ---
-    $current_period = isset($_GET['stats_period']) ? sanitize_text_field($_GET['stats_period']) : 'month';
-    $filter_date = isset($_GET['stats_date']) ? sanitize_text_field($_GET['stats_date']) : '';
+    $current_period = isset($_GET['stats_period']) ? sanitize_text_field(wp_unslash($_GET['stats_period'])) : 'month';
+    $filter_date = isset($_GET['stats_date']) ? sanitize_text_field(wp_unslash($_GET['stats_date'])) : '';
+    $filter_course = isset($_GET['stats_course']) ? trim(sanitize_text_field(wp_unslash($_GET['stats_course']))) : ''; 
     
     // URL hiện tại (xóa params lọc để build lại link)
-    $base_url = remove_query_arg(['stats_period', 'stats_date']);
+    $base_url = remove_query_arg(['stats_period', 'stats_date', 'stats_course']);
 
     // Query dữ liệu
     $all_leads = $wpdb->get_results("SELECT data, created_at FROM $table_leads", ARRAY_A);
 
     // Biến thống kê tổng hợp
+    $debug_logs = [];
     $total_students = 0;
     $total_revenue = 0; // Tổng giá trị khóa học
-    $total_deposit = 0; // Tổng đã thu (cọc + full)
-    $total_remaining = 0; // Tổng phải thu
+    $total_paid_full = 0; // Thực thu: Đã thanh toán 100%
+    $total_deposited_only = 0; // Thực thu: Chỉ mới cọc
+    $total_remaining = 0; // Tổng phải thu (Công nợ)
     
     // Biến cho biểu đồ tròn (Payment Status)
     $paid_count = 0;
@@ -108,7 +111,8 @@ function cf7_render_revenue_stats() {
         // Logic lọc thời gian
         $include = true;
         if (!empty($filter_date)) {
-            if ($row_date_ymd !== $filter_date) $include = false;
+            // Updated to use stats_meta for consistency with student-ma.php
+            if (($stats['day'] ?? '') !== $filter_date) $include = false;
         } else {
             switch ($current_period) {
                 case 'day':
@@ -132,7 +136,17 @@ function cf7_render_revenue_stats() {
         if (!$include) continue;
 
         // Tính toán
+        // Tính toán
         $c_key = $data['course']['key'] ?? '';
+        
+        // Filter by course if selected
+        if (!empty($filter_course)) {
+            // Case-insensitive comparison for robustness
+            if (strtolower(trim($c_key)) !== strtolower(trim($filter_course))) {
+                continue;
+            }
+        }
+
         $course_info = $db_courses_list[$c_key] ?? null;
         $full_price = $course_info ? $course_info->price : floatval($data['course']['price'] ?? 0);
 
@@ -151,10 +165,10 @@ function cf7_render_revenue_stats() {
         $total_revenue += $full_price;
         
         if ($status === 'paid') {
-            $total_deposit += $full_price; 
+            $total_paid_full += $full_price; 
             $paid_count++;
         } elseif ($status === 'deposit') {
-            $total_deposit += $deposit_amount; 
+            $total_deposited_only += $deposit_amount; 
             $total_remaining += ($full_price - $deposit_amount);
             $deposit_count++;
         } else { // unpaid
@@ -308,30 +322,54 @@ function cf7_render_revenue_stats() {
             <?php
             $periods = ['day' => 'Hôm nay', 'week' => 'Tuần này', 'month' => 'Tháng này', 'year' => 'Năm nay', 'all' => 'Tất cả'];
             foreach ($periods as $k => $label) {
+                // Keep the current course filter when changing period
                 $url = add_query_arg(['stats_period' => $k], $base_url);
+                if (!empty($filter_course)) {
+                    $url = add_query_arg('stats_course', $filter_course, $url);
+                }
+                
                 $active = ($current_period === $k && empty($filter_date)) ? 'active' : '';
                 echo "<a href='" . esc_url($url) . "' class='stats-filter-btn {$active}'>{$label}</a>";
             }
             ?>
-            <input type="date" value="<?php echo esc_attr($filter_date); ?>" onchange="window.location.href='<?php echo esc_js($base_url); ?>&stats_date='+this.value" style="padding: 6px 12px; border-radius: 20px; border: 1px solid #e2e8f0; margin-left: 10px;">
+            
+            <div style="margin-left:auto; display:flex; align-items:center; gap:8px;">
+                <select id="stats_filter_course" onchange="cf7_stats_apply_filter()" style="padding: 0 15px; border-radius: 20px; border: 1px solid #e2e8f0; height: 35px; outline:none; cursor:pointer; font-size:13px; color:#64748b; background:#fff; max-width: 180px;">
+                    <option value="">-- Tất cả khóa học --</option>
+                    <?php foreach ($db_courses_list as $k => $c): ?>
+                        <option value="<?php echo esc_attr($k); ?>" <?php selected($filter_course, $k); ?>><?php echo esc_html($c->course_name); ?></option>
+                    <?php endforeach; ?>
+                </select>
+
+                <input type="date" id="stats_filter_date" value="<?php echo esc_attr($filter_date); ?>" onchange="cf7_stats_apply_filter()" style="padding: 0 15px; border-radius: 20px; border: 1px solid #e2e8f0; height: 35px; outline:none; font-size:13px; color:#64748b; background:#fff;">
+                
+                <!-- Hidden inputs to store current state for JS -->
+                <input type="hidden" id="stats_current_period" value="<?php echo esc_attr($current_period); ?>">
+            </div>
+
+
         </div>
 
-        <!-- Top Stats Cards -->
         <div class="stats-grid-top">
-            <div class="stats-card highlight">
+            <div class="stats-card">
                 <h3>Tổng Học Viên</h3>
                 <div class="value"><?php echo number_format($total_students); ?></div>
                 <div class="sub-value">Đơn đăng ký hợp lệ</div>
             </div>
-            <div class="stats-card">
-                <h3>Tổng Doanh Thu (Dự kiến)</h3>
+            <div class="stats-card highlight">
+                <h3>Doanh Thu (Dự kiến)</h3>
                 <div class="value"><?php echo number_format($total_revenue); ?>đ</div>
                 <div class="sub-value">Tổng giá trị khóa học</div>
             </div>
             <div class="stats-card success">
-                <h3>Thực Thu (Đã nhận)</h3>
-                <div class="value"><?php echo number_format($total_deposit); ?>đ</div>
-                <div class="sub-value">Đã thanh toán + Đặt cọc</div>
+                <h3>Thực Thu (Đã xong)</h3>
+                <div class="value"><?php echo number_format($total_paid_full); ?>đ</div>
+                <div class="sub-value">Đã thanh toán 100%</div>
+            </div>
+            <div class="stats-card" style="border-bottom: 3px solid #3498db;">
+                <h3 style="color:#3498db;">Tiền Cọc (Đã nhận)</h3>
+                <div class="value" style="color:#3498db;"><?php echo number_format($total_deposited_only); ?>đ</div>
+                <div class="sub-value">Chỉ tính số tiền cọc</div>
             </div>
             <div class="stats-card warning">
                 <h3>Công Nợ (Phải thu)</h3>
@@ -339,6 +377,14 @@ function cf7_render_revenue_stats() {
                 <div class="sub-value">Số tiền còn thiếu</div>
             </div>
         </div>
+        
+        <?php if ($total_students == 0): ?>
+            <div style="text-align:center; padding: 40px; background:#fff; border-radius:12px; color:#7f8c8d; border: 1px dashed #dce4ec;">
+                <div style="font-size:40px; margin-bottom:10px;">📭</div>
+                <div style="font-size:16px; font-weight:600;">Chưa có dữ liệu</div>
+                <div style="font-size:13px; margin-top:5px;">Không tìm thấy học viên nào phù hợp với bộ lọc hiện tại.</div>
+            </div>
+        <?php else: ?>
         
         <!-- Charts Area -->
         <div class="charts-container">
@@ -361,10 +407,38 @@ function cf7_render_revenue_stats() {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         </div>
     </div>
 
     <script>
+    // Global filter function
+    function cf7_stats_apply_filter() {
+        var course = document.getElementById('stats_filter_course').value;
+        var date   = document.getElementById('stats_filter_date').value;
+        var period = document.getElementById('stats_current_period').value;
+
+        // Reset period if date is selected (logic from original code)
+        if (date) {
+            period = ''; 
+        }
+
+        var url = new URL(window.location.href);
+        
+        if (course) { url.searchParams.set('stats_course', course); } 
+        else { url.searchParams.delete('stats_course'); }
+
+        if (date) { 
+            url.searchParams.set('stats_date', date); 
+            url.searchParams.delete('stats_period'); // Ensure period is removed if date is present
+        } else {
+             url.searchParams.delete('stats_date');
+             if (period) url.searchParams.set('stats_period', period);
+        }
+
+        window.location.href = url.toString();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // --- 1. Payment Chart (Doughnut) ---
         const ctxPayment = document.getElementById('paymentChart').getContext('2d');
