@@ -70,6 +70,7 @@ function cf7_handle_course_create() {
     if (!is_array($schedules) || empty($schedules)) {
         if (!empty($start_date) && !empty($end_date)) {
             $schedules = [[
+                'label' => 'K1',
                 'start' => $start_date,
                 'end' => $end_date
             ]];
@@ -152,6 +153,7 @@ function cf7_handle_course_update() {
     if (!is_array($new_schedules) || empty($new_schedules)) {
         if (!empty($start_date) && !empty($end_date)) {
             $new_schedules = [[
+                'label' => 'K1',
                 'start' => $start_date,
                 'end' => $end_date
             ]];
@@ -278,6 +280,33 @@ function cf7_handle_course_get() {
     }
     
     $course_data = json_decode($course_row->data, true);
+    
+    // ✅ Count students per schedule
+    $student_counts = [];
+    $table_leads = $wpdb->prefix . 'cf7_leads';
+    $leads = $wpdb->get_results($wpdb->prepare(
+        "SELECT data FROM {$table_leads} WHERE data LIKE %s",
+        '%"key":"' . $course_key . '"%'
+    ));
+
+    foreach ($leads as $lead) {
+        $l_data = json_decode($lead->data, true);
+        if ($l_data && isset($l_data['course']['schedule_index'])) {
+            $idx = intval($l_data['course']['schedule_index']);
+            if ($idx >= 0) {
+                if (!isset($student_counts[$idx])) $student_counts[$idx] = 0;
+                $student_counts[$idx]++;
+            }
+        }
+    }
+    
+    // Inject count into schedules
+    if (isset($course_data['schedules']) && is_array($course_data['schedules'])) {
+        foreach ($course_data['schedules'] as $idx => &$sch) {
+            $sch['student_count'] = $student_counts[$idx] ?? 0;
+        }
+    }
+
     wp_send_json_success($course_data);
 }
 
@@ -711,8 +740,15 @@ function cf7_course_js() {
     var CF7_NONCE = "' . esc_js($nonce) . '";
         
     // Helper thêm dòng lịch học
-    window.cf7_add_schedule_row = function(start = "", end = "") {
+    window.cf7_add_schedule_row = function(label = "", start = "", end = "", studentCount = 0) {
         var list = document.getElementById("cf7-schedule-list");
+        
+        // Auto-generate label if empty (K1, K2, ...)
+        if (!label) {
+            var count = list.querySelectorAll(".schedule-row").length;
+            label = "K" + (count + 1);
+        }
+
         var id = "schedule-" + Date.now() + Math.random().toString(36).substr(2, 9);
         
         var row = document.createElement("div");
@@ -725,6 +761,10 @@ function cf7_course_js() {
         row.style.flexWrap = "nowrap"; 
         
         row.innerHTML = `
+            <div style="width: 80px;">
+                <label style="display:block; font-size:12px; margin-bottom:4px; color:#7f8c8d;">Khóa</label>
+                <input type="text" class="schedule-label" value="${label}" placeholder="K..." style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; height: 38px; box-sizing: border-box;">
+            </div>
             <div style="flex:1; min-width: 130px;">
                 <label style="display:block; font-size:12px; margin-bottom:4px; color:#7f8c8d;">Bắt đầu</label>
                 <input type="date" class="schedule-start" value="${start}" required onchange="cf7_update_schedule_status(this)" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; height: 38px; box-sizing: border-box;">
@@ -741,7 +781,10 @@ function cf7_course_js() {
                 </div>
             </div>
             
-            <button type="button" onclick="document.getElementById(\'${id}\').remove()" style="padding:0 10px; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer; height:38px;" title="Xóa lịch này">🗑️</button>
+            ${studentCount > 0 
+                ? `<button type="button" style="padding:0 10px; background:#bdc3c7; color:#fff; border:none; border-radius:4px; cursor:not-allowed; height:38px; font-size:13px; display:flex; align-items:center; justify-content:center; gap:5px; min-width:40px;" title="Không thể xóa vì đã có ${studentCount} học viên đăng ký"><span style="font-size:16px;">👥</span> <span>${studentCount}</span></button>`
+                : `<button type="button" onclick="document.getElementById(\'${id}\').remove()" style="padding:0 10px; background:#e74c3c; color:#fff; border:none; border-radius:4px; cursor:pointer; height:38px;" title="Xóa lịch này">🗑️</button>`
+            }
         `;
         
         list.appendChild(row);
@@ -845,9 +888,9 @@ function cf7_course_js() {
                         var schedules = course.schedules || [];
                         
                         if (schedules.length > 0) {
-                            schedules.forEach(function(sch) { cf7_add_schedule_row(sch.start, sch.end); });
+                            schedules.forEach(function(sch) { cf7_add_schedule_row(sch.label || "", sch.start, sch.end, sch.student_count || 0); });
                         } else {
-                            cf7_add_schedule_row(course.start_date || "", course.end_date || "");
+                            cf7_add_schedule_row("", course.start_date || "", course.end_date || "");
                         }
                         
                         modal.style.display = "flex";
@@ -936,9 +979,10 @@ function cf7_course_js() {
             var scheduleRows = document.querySelectorAll(".schedule-row");
             var schedules = [];
             scheduleRows.forEach(function(row) {
+                var l = row.querySelector(".schedule-label") ? row.querySelector(".schedule-label").value : "";
                 var s = row.querySelector(".schedule-start").value;
                 var e = row.querySelector(".schedule-end").value;
-                if (s && e) schedules.push({start: s, end: e});
+                if (s && e) schedules.push({label: l, start: s, end: e});
             });
             
             var startDate = schedules.length > 0 ? schedules[0].start : "";

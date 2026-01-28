@@ -31,6 +31,7 @@ function cf7_handle_student_create() {
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
     $course_key = isset($_POST['course_key']) ? sanitize_text_field($_POST['course_key']) : '';
+    $schedule_index = isset($_POST['schedule_index']) ? intval($_POST['schedule_index']) : -1;
     $note = isset($_POST['note']) ? sanitize_textarea_field($_POST['note']) : '';
     
     if (empty($name) || empty($phone) || empty($course_key)) {
@@ -68,6 +69,9 @@ function cf7_handle_student_create() {
             'key'     => $course_key,
             'name'    => $course_data['course_name'] ?? '',
             'price'   => floatval($course_data['price'] ?? 0),
+            'schedule_index' => $schedule_index,
+            'start_date' => $course_data['start_date'] ?? '',
+            'end_date'   => $course_data['end_date'] ?? '',
         ],
         'order_status' => 'waiting',
         'payment' => [
@@ -99,6 +103,14 @@ function cf7_handle_student_create() {
         'updated_at' => current_time('mysql'),
     ];
     
+    // ✅ AUTO-UPDATE DATES BASED ON SCHEDULE INDEX
+    if ($schedule_index >= 0 && !empty($course_data['schedules'][$schedule_index])) {
+        $sch = $course_data['schedules'][$schedule_index];
+        $values['course']['start_date'] = $sch['start'] ?? '';
+        $values['course']['end_date']   = $sch['end'] ?? '';
+        // Note: We don't save 'schedule_label' anymore (dynamic resolution)
+    }
+
     $result = $wpdb->insert(
         $table_leads,
         [
@@ -125,6 +137,7 @@ function cf7_handle_student_update() {
     $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
     $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
     $course_key = isset($_POST['course_key']) ? sanitize_text_field($_POST['course_key']) : '';
+    $schedule_index = isset($_POST['schedule_index']) ? intval($_POST['schedule_index']) : -1;
     $note = isset($_POST['note']) ? sanitize_textarea_field($_POST['note']) : '';
     
     if (empty($id) || empty($name) || empty($phone) || empty($course_key)) {
@@ -174,6 +187,18 @@ function cf7_handle_student_update() {
     $old_data['course']['key'] = $course_key;
     $old_data['course']['name'] = $course_data['course_name'] ?? '';
     $old_data['course']['price'] = floatval($course_data['price'] ?? 0);
+    $old_data['course']['schedule_index'] = $schedule_index;
+    
+    // Default to course dates
+    $old_data['course']['start_date'] = $course_data['start_date'] ?? '';
+    $old_data['course']['end_date']   = $course_data['end_date'] ?? '';
+
+    // ✅ AUTO-UPDATE DATES BASED ON SCHEDULE INDEX (UPDATE)
+    if ($schedule_index >= 0 && !empty($course_data['schedules'][$schedule_index])) {
+        $sch = $course_data['schedules'][$schedule_index];
+        $old_data['course']['start_date'] = $sch['start'] ?? '';
+        $old_data['course']['end_date']   = $sch['end'] ?? '';
+    }
     
     // Nếu giá khóa học thay đổi, cập nhật lại deposit amount
     if ($old_data['payment']['status'] === 'deposit') {
@@ -236,6 +261,7 @@ function cf7_handle_student_get() {
         'email' => $data['user']['email'] ?? '',
         'note' => $data['user']['note'] ?? '',
         'course_key' => $data['course']['key'] ?? '',
+        'schedule_index' => isset($data['course']['schedule_index']) ? intval($data['course']['schedule_index']) : -1,
     ]);
 }
 
@@ -841,9 +867,34 @@ function cf7_get_table_rows_combined() {
             }
             
             if (!empty($schedule_start)) {
-                // Trường hợp đã lưu lịch cụ thể
+                // ✅ RE-IMPLEMENTED: Determine K-label dynamically from LIVE course data
+                $dynamic_label = '';
+                
+                if ($course_info && !empty($course_info->schedules)) {
+                    $schedules_arr = is_array($course_info->schedules) ? $course_info->schedules : json_decode(json_encode($course_info->schedules), true);
+                    
+                    // Priority 1: Use schedule_index if valid
+                    if ($schedule_idx >= 0 && isset($schedules_arr[$schedule_idx])) {
+                        $sch = $schedules_arr[$schedule_idx];
+                        if (isset($sch['start']) && $sch['start'] == $schedule_start) {
+                            $dynamic_label = !empty($sch['label']) ? $sch['label'] : 'K' . ($schedule_idx + 1);
+                        }
+                    }
+
+                    // Priority 2: Fallback to matching Date if index failed
+                    if (empty($dynamic_label)) {
+                        foreach ($schedules_arr as $idx => $sch) {
+                            if (isset($sch['start']) && $sch['start'] == $schedule_start) {
+                                $dynamic_label = !empty($sch['label']) ? $sch['label'] : 'K' . ($idx + 1);
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // Render
                 $start_formatted = date('d/m/Y', strtotime($schedule_start));
-                $label_html = $schedule_label ? "<strong>{$schedule_label}:</strong> " : "";
+                $label_html = $dynamic_label ? "<strong>{$dynamic_label}:</strong> " : "";
                 
                 if (!empty($schedule_end)) {
                     $end_formatted = date('d/m/Y', strtotime($schedule_end));
@@ -1044,6 +1095,12 @@ function cf7_student_modal_html() {
                         ' . $courses_options . '
                     </select>
                 </div>
+                <div style="margin-bottom:15px;">
+                    <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Lịch khai giảng</label>
+                    <select id="cf7-student-schedule-index" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px; background:#f9f9f9;">
+                        <option value="-1">-- Chọn lịch học --</option>
+                    </select>
+                </div>
                 <div style="margin-bottom:20px;">
                     <label style="display:block; margin-bottom:5px; font-weight:600; color:#555;">Ghi chú</label>
                     <textarea id="cf7-student-note" rows="3" placeholder="Nhập ghi chú..." style="width:100%; padding:10px; border:1px solid #ddd; border-radius:6px; font-size:14px;"></textarea>
@@ -1127,6 +1184,10 @@ function cf7_student_js() {
                         document.getElementById("cf7-student-phone").value = student.phone || "";
                         document.getElementById("cf7-student-email").value = student.email || "";
                         document.getElementById("cf7-student-course").value = student.course_key || "";
+                        
+                        // ✅ Trigger load lịch và set selected index
+                        cf7_update_schedule_options(student.course_key, student.schedule_index);
+                        
                         document.getElementById("cf7-student-note").value = student.note || "";
                         
                         modal.style.display = "flex";
@@ -1182,6 +1243,62 @@ function cf7_student_js() {
     window.cf7_edit_student = function(studentId) {
         cf7_open_student_modal(studentId);
     };
+
+    // ✅ Hàm cập nhật dropdown lịch học
+    window.cf7_update_schedule_options = function(courseKey, selectedIndex = -1) {
+        var scheduleSelect = document.getElementById("cf7-student-schedule-index");
+        if (!scheduleSelect) return;
+        
+        scheduleSelect.innerHTML = "<option value=\'-1\'>⏳ Đang tải...</option>";
+        scheduleSelect.disabled = true;
+
+        if (!courseKey) {
+            scheduleSelect.innerHTML = "<option value=\'-1\'>-- Chọn khóa học trước --</option>";
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append("action", "cf7_get_course_info");
+        formData.append("course_key", courseKey);
+        formData.append("context", "admin_edit"); // ✅ Flag to show all schedules
+
+        fetch(CF7_STUDENT_AJAX_URL, {
+            method: "POST",
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            scheduleSelect.innerHTML = "<option value=\'-1\'>-- Chọn lịch học --</option>";
+            scheduleSelect.disabled = false;
+
+            if (data.success && data.data && data.data.schedules) {
+                // Determine today (YYYY-MM-DD)
+                var today = new Date().toISOString().split("T")[0];
+
+                data.data.schedules.forEach(sch => {
+                    var label = sch.label ? sch.label : ("K" + (parseInt(sch.index) + 1));
+                    var start = sch.start_fmt || sch.start;
+                    var isExpired = (sch.start < today);
+                    var style = isExpired ? "color:#95a5a6;" : "font-weight:bold;";
+                    var expiredText = isExpired ? " (Đã qua)" : "";
+                    
+                    var option = document.createElement("option");
+                    option.value = sch.index;
+                    option.innerHTML = label + " - " + start + expiredText;
+                    if (isExpired) option.style.color = "#999";
+
+                    if (parseInt(sch.index) === parseInt(selectedIndex)) {
+                        option.selected = true;
+                    }
+                    scheduleSelect.appendChild(option);
+                });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            scheduleSelect.innerHTML = "<option value=\'-1\'>Lỗi tải lịch</option>";
+        });
+    };
     
     // Hàm attach form submit handler
     function attachStudentFormSubmitHandler() {
@@ -1235,10 +1352,13 @@ function cf7_student_js() {
                 formData.append("id", id);
             }
             
+            var scheduleIndex = document.getElementById("cf7-student-schedule-index").value;
+
             formData.append("name", name);
             formData.append("phone", phone);
             formData.append("email", email);
             formData.append("course_key", courseKey);
+            formData.append("schedule_index", scheduleIndex);
             formData.append("note", note);
             
             var submitBtn = form.querySelector("button[type=submit]");
@@ -1320,6 +1440,14 @@ function cf7_student_js() {
                     cf7_close_student_modal();
                 }
             });
+        }
+    });
+    
+    // ✅ Add event listener for Course Change
+    document.addEventListener("change", function(e) {
+        if (e.target && e.target.id === "cf7-student-course") {
+            var newKey = e.target.value;
+            cf7_update_schedule_options(newKey);
         }
     });
     </script>';

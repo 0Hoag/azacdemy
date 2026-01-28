@@ -57,9 +57,9 @@ function cf7_registration_data() {
                         'original_price' => 8600000,
                         'duration' => '12 buổi',
                         'start_date' => $m1_start,
-                        'end_date' => $m1_end,
-                        'schedules' => [
-                            ['start' => $m1_start, 'end' => $m1_end]
+                        'end_date'   => $m1_end,
+                        'schedules'  => [
+                            ['label' => 'K1', 'start' => $m1_start, 'end' => $m1_end]
                         ]
                     ]
                 ],
@@ -73,9 +73,9 @@ function cf7_registration_data() {
                         'original_price' => 8400000,
                         'duration' => '12 buổi',
                         'start_date' => $m2_start,
-                        'end_date' => $m2_end,
-                        'schedules' => [
-                            ['start' => $m2_start, 'end' => $m2_end]
+                        'end_date'   => $m2_end,
+                        'schedules'  => [
+                            ['label' => 'K1', 'start' => $m2_start, 'end' => $m2_end]
                         ]
                     ]
                 ],
@@ -89,9 +89,9 @@ function cf7_registration_data() {
                         'original_price' => 8400000,
                         'duration' => '12 buổi',
                         'start_date' => $m3_start,
-                        'end_date' => $m3_end,
-                        'schedules' => [
-                            ['start' => $m3_start, 'end' => $m3_end]
+                        'end_date'   => $m3_end,
+                        'schedules'  => [
+                            ['label' => 'K1', 'start' => $m3_start, 'end' => $m3_end]
                         ]
                     ]
                 ],
@@ -105,10 +105,10 @@ function cf7_registration_data() {
                         'original_price' => 17000000,
                         'duration' => '36 buổi',
                         'start_date' => $m1_start,
-                        'end_date' => $m3_end,
-                        'schedules' => [
-                            ['start' => $m1_start, 'end' => $m1_end],
-                            ['start' => $m3_start, 'end' => $m3_end]
+                        'end_date'   => $m3_end,
+                        'schedules'  => [
+                            ['label' => 'K1', 'start' => $m1_start, 'end' => $m1_end],
+                            ['label' => 'K2', 'start' => $m3_start, 'end' => $m3_end]
                         ]
                     ]
                 ],
@@ -122,10 +122,10 @@ function cf7_registration_data() {
                         'original_price' => 17000000,
                         'duration' => '24 buổi',
                         'start_date' => $m1_start,
-                        'end_date' => $m2_end,
-                        'schedules' => [
-                            ['start' => $m1_start, 'end' => $m1_end],
-                            ['start' => $m2_start, 'end' => $m2_end]
+                        'end_date'   => $m2_end,
+                        'schedules'  => [
+                            ['label' => 'K1', 'start' => $m1_start, 'end' => $m1_end],
+                            ['label' => 'K2', 'start' => $m2_start, 'end' => $m2_end]
                         ]
                     ]
                 ],
@@ -139,11 +139,11 @@ function cf7_registration_data() {
                         'original_price' => 25400000,
                         'duration' => '36 buổi',
                         'start_date' => $m1_start,
-                        'end_date' => $m3_end,
-                        'schedules' => [
-                            ['start' => $m1_start, 'end' => $m1_end],
-                            ['start' => $m2_start, 'end' => $m2_end],
-                            ['start' => $m3_start, 'end' => $m3_end]
+                        'end_date'   => $m3_end,
+                        'schedules'  => [
+                            ['label' => 'K1', 'start' => $m1_start, 'end' => $m1_end],
+                            ['label' => 'K2', 'start' => $m2_start, 'end' => $m2_end],
+                            ['label' => 'K3', 'start' => $m3_start, 'end' => $m3_end]
                         ]
                     ]
                 ]

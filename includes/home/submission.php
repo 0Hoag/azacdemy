@@ -418,20 +418,79 @@ function cf7_get_course_info_ajax() {
     $schedules_list = [];
     $today = date('Y-m-d'); // Lấy ngày hiện tại
 
+    // ✅ Count students per schedule
+    $student_counts = [];
+    $table_leads = $wpdb->prefix . 'cf7_leads';
+    
+    // Get all leads for this course to count schedules (optimize with specific query later if needed)
+    // Note: We need to parse JSON data column
+    $leads = $wpdb->get_results($wpdb->prepare(
+        "SELECT data FROM {$table_leads} WHERE data LIKE %s",
+        '%"key":"' . $course_key . '"%'
+    ));
+
+    foreach ($leads as $lead) {
+        $l_data = json_decode($lead->data, true);
+        if ($l_data && isset($l_data['course']['schedule_index'])) {
+            $idx = intval($l_data['course']['schedule_index']);
+            if ($idx >= 0) {
+                if (!isset($student_counts[$idx])) $student_counts[$idx] = 0;
+                $student_counts[$idx]++;
+            }
+        }
+    }
+
+    // ✅ Context check: If 'admin_edit', show ALL schedules. Otherwise filter expired.
+    $context = isset($_POST['context']) ? sanitize_text_field($_POST['context']) : '';
+    
     if (!empty($course_data['schedules']) && is_array($course_data['schedules'])) {
         foreach ($course_data['schedules'] as $idx => $sch) {
             if (empty($sch['start'])) continue;
             
-            // ✅ Chỉ lấy lịch chưa bắt đầu (start_date >= today)
-            if ($sch['start'] < $today) continue;
+            // ✅ Chỉ lấy lịch chưa bắt đầu (start_date >= today) nếu không phải Admin Edit
+            if ($context !== 'admin_edit' && $sch['start'] < $today) continue;
+
+            // ✅ Use stored label if available, otherwise fallback to K{index+1}
+            $label = !empty($sch['label']) ? $sch['label'] : 'K' . ($idx + 1);
 
             $schedules_list[] = [
                 'index' => $idx,
                 'start' => $sch['start'],
                 'start_fmt' => date('d/m/Y', strtotime($sch['start'])),
-                'label' => 'K' . ($idx + 1)
+                'label' => $label,
+                'student_count' => $student_counts[$idx] ?? 0 // ✅ Return student count
             ];
         }
+    }
+
+    // ✅ Kiểm tra và xử lý Start Date (nếu quá hạn thì ẩn)
+    $is_expired = false;
+    if (!empty($course_data['start_date'])) {
+        if ($course_data['start_date'] < $today) {
+            // Nếu ngày bắt đầu chính đã quá hạn
+            // Kiểm tra xem có lịch nào trong tương lai không?
+            if (empty($schedules_list)) {
+                $is_expired = true;
+                $start_formatted = ''; // Xóa ngày hiển thị để frontend biết
+            }
+        } else {
+            // Nếu ngày chưa quá hạn, thử tìm K-label tương ứng để hiển thị (nếu frontend fallback về đây)
+            // (Optional enhancement)
+        }
+    } else {
+        // Nếu không có start_date mà cũng không có schedules -> Coi như expired/invalid
+        if (empty($schedules_list)) {
+            $is_expired = true;
+        }
+    }
+
+    if ($is_expired) {
+        wp_send_json_success([
+            'is_expired' => true,
+            'message' => 'Khóa học đã kết thúc đăng ký.',
+            'schedules' => []
+        ]);
+        return;
     }
 
     wp_send_json_success([
@@ -571,7 +630,8 @@ function cf7_send_to_telegram() {
                     $sch = $course_data['schedules'][$schedule_index];
                     $course_info['start_date'] = $sch['start'] ?? '';
                     $course_info['end_date'] = $sch['end'] ?? '';
-                    $course_info['schedule_label'] = 'K' . ($schedule_index + 1);
+                    // ✅ Ưu tiên lấy label từ DB (đã cấu hình), nếu không có mới tự sinh
+                    $course_info['schedule_label'] = !empty($sch['label']) ? $sch['label'] : ('K' . ($schedule_index + 1));
                 }
             }
         }
@@ -591,7 +651,7 @@ function cf7_send_to_telegram() {
             'name'    => $course_info['name'],
             'price'   => $course_info['price'],
             'schedule_index' => $schedule_index,
-            'schedule_label' => $course_info['schedule_label'],
+            // 'schedule_label' => $course_info['schedule_label'], // ❌ REMOVED: Don't store static label
             'start_date' => $course_info['start_date'], // Lưu lại ngày bắt đầu cụ thể
             'end_date' => $course_info['end_date'] // Lưu lại ngày kết thúc cụ thể
         ],
@@ -652,8 +712,9 @@ function cf7_send_to_telegram() {
     }
     
     $course_name_display = $values['course']['name'];
-    if (!empty($values['course']['schedule_label'])) {
-        $course_name_display .= " - " . $values['course']['schedule_label'];
+    // ✅ Fix: Use local variable since we removed it from DB storage
+    if (!empty($course_info['schedule_label'])) {
+        $course_name_display .= " - " . $course_info['schedule_label'];
     }
 
     $text =

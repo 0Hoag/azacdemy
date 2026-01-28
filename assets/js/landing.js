@@ -54,7 +54,38 @@ document.addEventListener('DOMContentLoaded', function () {
                     var html = '';
                     var hasSchedules = data.data.schedules && data.data.schedules.length > 0;
 
-                    if (hasSchedules) {
+                    // ✅ CASE 1: Khóa học đã kết thúc
+                    if (data.data.is_expired) {
+                        html = '<div class="pro-schedule-box" style="border-color:#e74c3c; background:#fdf0ef;">' +
+                            '<div class="pro-schedule-icon"><span class="calendar-icon" style="filter: grayscale(1);">🔒</span></div>' +
+                            '<div class="pro-schedule-content">' +
+                            '<div class="pro-schedule-label" style="color:#c0392b;">Khóa học đã kết thúc</div>' +
+                            '<div class="pro-schedule-date" style="color:#7f8c8d; font-size:13px;">Vui lòng đợi khóa tiếp theo</div>' +
+                            '</div></div>';
+
+                        // Disable ALL inputs and submit button
+                        if (form) {
+                            var allInputs = form.querySelectorAll('input, select, textarea, button');
+                            allInputs.forEach(function (el) {
+                                // Skip the hidden inputs
+                                if (el.type !== 'hidden') {
+                                    el.disabled = true;
+                                    el.style.opacity = '0.6';
+                                    el.style.cursor = 'not-allowed';
+                                }
+                            });
+
+                            var btn = form.querySelector('button[type="submit"], input[type="submit"]');
+                            if (btn) {
+                                btn.innerHTML = 'Đã kết thúc';
+                                btn.value = 'Đã kết thúc';
+                                btn.style.background = '#ccc';
+                                btn.disabled = true;
+                            }
+                        }
+                    }
+                    // ✅ CASE 2: Có lịch học cụ thể
+                    else if (hasSchedules) {
                         html = '<div class="schedule-selection-container" style="background:#fff; padding:15px; border-radius:10px; border:1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">';
                         html += '<div class="pro-schedule-label" style="font-weight:700; color:#34495e; margin-bottom:12px; display:flex; align-items:center; gap:8px; font-size:15px;">📅 CHỌN LỊCH KHAI GIẢNG:</div>';
 
@@ -74,7 +105,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Set hidden input value to the first schedule index by default
                         updateHiddenInput({ value: data.data.schedules[0].index });
 
-                    } else if (data.data.start_date) {
+                    }
+                    // ✅ CASE 3: Fallback (Chỉ có ngày start_date)
+                    else if (data.data.start_date) {
                         // Single schedule - Display ONLY start time
                         html = `<div class="pro-schedule-box">
                         <div class="pro-schedule-icon">
