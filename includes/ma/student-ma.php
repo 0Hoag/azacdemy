@@ -1123,6 +1123,78 @@ function cf7_student_js() {
     var CF7_STUDENT_AJAX_URL = "' . esc_js($ajax_url) . '";
     var CF7_STUDENT_NONCE = "' . esc_js($nonce) . '";
     
+    // ✅ Pro Toast Function (Shared Style)
+    if (!window.cf7_toast) {
+        window.cf7_toast = function(message, type = "success") {
+            var existing = document.querySelector(".cf7-toast");
+            if (existing) existing.remove();
+            
+            var toast = document.createElement("div");
+            toast.className = "cf7-toast " + type;
+            var icon = type === "success" ? "✅" : "⚠️";
+             var title = type === "success" ? "Thành công" : "Chú ý";
+            
+            if (type === "error") {
+                icon = "❌";
+                title = "Có lỗi xảy ra";
+            }
+            
+            toast.innerHTML = `
+                <div class="cf7-toast-icon">${icon}</div>
+                <div class="cf7-toast-content">
+                    <span class="cf7-toast-title">${title}</span>
+                    <span class="cf7-toast-message">${message}</span>
+                </div>
+                <div class="cf7-toast-progress"></div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(function() {
+                toast.classList.add("hiding");
+                setTimeout(function() {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 500); 
+            }, 6000);
+        };
+        
+        // Inject Styles dynamically if not present
+        if (!document.getElementById("cf7-toast-style")) {
+            var style = document.createElement("style");
+            style.id = "cf7-toast-style";
+            style.innerHTML = `
+                @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+                @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+                @keyframes progress { from { width: 100%; } to { width: 0%; } }
+                
+                .cf7-toast {
+                    position: fixed; top: 30px; right: 30px;
+                    background: rgba(255, 255, 255, 0.95);
+                    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+                    color: #2c3e50; padding: 16px 24px; border-radius: 12px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.05);
+                    z-index: 100000; font-size: 14px; font-weight: 600;
+                    display: flex; align-items: center; gap: 15px;
+                    min-width: 300px; max-width: 400px; overflow: hidden;
+                    border-left: 6px solid #2ecc71;
+                    animation: slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+                }
+                .cf7-toast.hiding { animation: slideOutRight 0.5s forwards; }
+                .cf7-toast.error { border-left-color: #e74c3c; }
+                .cf7-toast.error .cf7-toast-progress { background: #e74c3c; }
+                
+                .cf7-toast-icon { font-size: 20px; }
+                .cf7-toast-content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+                .cf7-toast-title { font-size: 12px; color: #95a5a6; text-transform: uppercase; letter-spacing: 0.5px; }
+                .cf7-toast-message { font-size: 15px; line-height: 1.4; }
+                .cf7-toast-title { font-size: 12px; color: #95a5a6; text-transform: uppercase; letter-spacing: 0.5px; }
+                .cf7-toast-message { font-size: 15px; line-height: 1.4; }
+                .cf7-toast-progress { position: absolute; bottom: 0; left: 0; height: 3px; background: #2ecc71; animation: progress 6s linear forwards; }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
     // Mở modal
     window.cf7_open_student_modal = function(studentId) {
         console.log("🔓 Opening student modal, studentId:", studentId);
@@ -1140,7 +1212,7 @@ function cf7_student_js() {
                     return;
                 } else {
                     console.error("❌ Modal or form not found after 10 retries!");
-                    alert("Lỗi: Không tìm thấy modal hoặc form. Vui lòng refresh trang.");
+                    cf7_toast("Lỗi: Không tìm thấy modal.", "error");
                     return;
                 }
             }
@@ -1198,12 +1270,13 @@ function cf7_student_js() {
                             attachStudentFormSubmitHandler();
                         }, 50);
                     } else {
-                        alert("Không thể tải thông tin học viên.");
+
+                        cf7_toast("Không thể tải thông tin học viên.", "error");
                     }
                 })
                 .catch(error => {
                     console.error("❌ GET Error:", error);
-                    alert("Có lỗi xảy ra khi tải thông tin học viên.");
+                    cf7_toast("Có lỗi xảy ra.", "error");
                 });
             } else {
                 // Chế độ thêm mới
@@ -1342,9 +1415,10 @@ function cf7_student_js() {
             e.stopPropagation();
             e.stopImmediatePropagation();
             
+
             var actionEl = document.getElementById("cf7-student-action");
             if (!actionEl) {
-                alert("Lỗi: Không tìm thấy action.");
+                cf7_toast("Lỗi hệ thống.", "error");
                 return false;
             }
             
@@ -1358,7 +1432,7 @@ function cf7_student_js() {
             var note = document.getElementById("cf7-student-note").value || "";
             
             if (!name || !phone || !courseKey) {
-                alert("Vui lòng điền đầy đủ thông tin bắt buộc.");
+                cf7_toast("Vui lòng điền đầy đủ thông tin.", "error");
                 return false;
             }
             
@@ -1366,7 +1440,7 @@ function cf7_student_js() {
 
             // ✅ Validate Schedule Selection
             if (scheduleIndex == -1 || scheduleIndex === "") {
-                alert("Vui lòng chọn Lịch khai giảng (K) hợp lệ.");
+                cf7_toast("Vui lòng chọn Lịch khai giảng (K).", "error");
                 return false;
             }
             
@@ -1410,7 +1484,7 @@ function cf7_student_js() {
                 
                 if (isSuccess) {
                     var message = data.data && data.data.message ? data.data.message : "Thành công!";
-                    alert(message);
+                    cf7_toast(message);
                     
                     var modal = document.getElementById("cf7-student-modal");
                     if (modal) {
@@ -1422,7 +1496,7 @@ function cf7_student_js() {
                     
                     setTimeout(function() {
                         location.reload();
-                    }, 300);
+                    }, 6000);
                 } else {
                     var errorMsg = "Có lỗi xảy ra.";
                     if (data.data) {
@@ -1432,7 +1506,7 @@ function cf7_student_js() {
                             errorMsg = data.data.message;
                         }
                     }
-                    alert(errorMsg);
+                    cf7_toast(errorMsg, "error");
                     
                     if (submitBtn) {
                         submitBtn.disabled = false;
@@ -1442,7 +1516,7 @@ function cf7_student_js() {
             })
             .catch(function(error) {
                 console.error("❌ Fetch Error:", error);
-                alert("Lỗi: " + error.message);
+                cf7_toast("Lỗi: " + error.message, "error");
                 
                 if (submitBtn) {
                     submitBtn.disabled = false;

@@ -734,10 +734,125 @@ function cf7_course_js() {
         .course-status-upcoming { background: #e3f2fd; color: #2196f3; }
         .course-status-ongoing { background: #e8f5e9; color: #2ecc71; }
         .course-status-completed { background: #f5f5f5; color: #9e9e9e; }
+        
+        /* ✅ Pro Toast Notification */
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutRight {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        
+        .cf7-toast {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #2c3e50;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 100000;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 300px;
+            max-width: 400px;
+            overflow: hidden;
+            border-left: 6px solid #2ecc71;
+            animation: slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+        }
+        
+        .cf7-toast.hiding {
+            animation: slideOutRight 0.5s forwards;
+        }
+
+        .cf7-toast.error {
+            border-left-color: #e74c3c;
+        }
+        
+        .cf7-toast-icon {
+            font-size: 20px;
+        }
+        
+        .cf7-toast-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .cf7-toast-title {
+            font-size: 12px;
+            color: #95a5a6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .cf7-toast-message {
+            font-size: 15px;
+            line-height: 1.4;
+        }
+        
+        .cf7-toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #2ecc71;
+            animation: progress 6s linear forwards;
+        }
+        .cf7-toast.error .cf7-toast-progress {
+            background: #e74c3c;
+        }
     </style>
     <script>
     var CF7_AJAX_URL = "' . esc_js($ajax_url) . '";
     var CF7_NONCE = "' . esc_js($nonce) . '";
+    
+    // ✅ Pro Toast Function
+    window.cf7_toast = function(message, type = "success") {
+        var existing = document.querySelector(".cf7-toast");
+        if (existing) existing.remove();
+        
+        var toast = document.createElement("div");
+        toast.className = "cf7-toast " + type;
+        var icon = type === "success" ? "✅" : "⚠️";
+        var title = type === "success" ? "Thành công" : "Chú ý";
+        
+        if (type === "error") {
+            icon = "❌";
+            title = "Có lỗi xảy ra";
+        }
+        
+        toast.innerHTML = `
+            <div class="cf7-toast-icon">${icon}</div>
+            <div class="cf7-toast-content">
+                <span class="cf7-toast-title">${title}</span>
+                <span class="cf7-toast-message">${message}</span>
+            </div>
+            <div class="cf7-toast-progress"></div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Auto hide after 6 seconds + animation time
+        setTimeout(function() {
+            toast.classList.add("hiding");
+            setTimeout(function() {
+                if (toast.parentNode) toast.parentNode.removeChild(toast);
+            }, 500); // Wait for slideOut
+        }, 6000);
+
+    };
         
     // Helper thêm dòng lịch học
     window.cf7_add_schedule_row = function(label = "", start = "", end = "", studentCount = 0) {
@@ -834,8 +949,8 @@ function cf7_course_js() {
         // Hàm helper để tìm modal và form với retry
         function findModalAndForm(retries) {
             retries = retries || 0;
-                var modal = document.getElementById("cf7-course-modal");
-                var form = document.getElementById("cf7-course-form");
+            var modal = document.getElementById("cf7-course-modal");
+            var form = document.getElementById("cf7-course-form");
             
             if (!modal || !form) {
                 if (retries < 10) {
@@ -844,13 +959,14 @@ function cf7_course_js() {
                     }, 100);
                     return;
                 } else {
-                    alert("Lỗi: Không tìm thấy modal hoặc form. Vui lòng refresh lại trang.");
+                    console.error("❌ Modal or form not found after 10 retries!");
+                    cf7_toast("Lỗi: Không tìm thấy modal.", "error");
                     return;
                 }
             }
             
             openModalWithElements(modal, form, courseKey);
-            }
+        }
             
         function openModalWithElements(modal, form, courseKey) {
             var action = document.getElementById("cf7-course-action");
@@ -896,10 +1012,10 @@ function cf7_course_js() {
                         modal.style.display = "flex";
                         setTimeout(function() { attachFormSubmitHandler(); }, 50);
                         } else {
-                        alert("Không thể tải thông tin khóa học.");
+                            cf7_toast("Không thể tải thông tin khóa học.", "error");
                         }
                     })
-                .catch(error => { console.error(error); alert("Có lỗi xảy ra khi tải thông tin khóa học."); });
+                .catch(error => { console.error(error); cf7_toast("Có lỗi xảy ra.", "error"); });
                 } else {
                 // Chế độ thêm mới
                     action.value = "create";
@@ -950,11 +1066,16 @@ function cf7_course_js() {
         fetch(CF7_AJAX_URL, { method: "POST", body: formData })
         .then(response => response.json())
             .then(data => {
-                if (data.success) { alert("Xóa khóa học thành công!"); location.reload(); }
-                else { alert(data.data.message || "Không thể xóa khóa học."); }
+                if (data.success) { 
+                    cf7_toast("Xóa khóa học thành công!"); 
+                    // Delay reload to let user see toast
+                    setTimeout(function() { location.reload(); }, 6000); 
+                }
+                else { cf7_toast(data.data.message || "Không thể xóa khóa học.", "error"); }
             })
-        .catch(error => { console.error(error); alert("Có lỗi xảy ra khi xóa khóa học."); });
+        .catch(error => { console.error(error); cf7_toast("Lỗi kết nối.", "error"); });
         };
+
         
     // Hàm attach form submit handler
     function attachFormSubmitHandler() {
@@ -989,7 +1110,7 @@ function cf7_course_js() {
             var endDate = schedules.length > 0 ? schedules[0].end : "";
             
             if (!courseKey || !courseName || schedules.length === 0) {
-                alert("Vui lòng điền đầy đủ thông tin bắt buộc và ít nhất một lịch học.");
+                cf7_toast("Vui lòng điền đủ thông tin và ít nhất 1 lịch học.", "error");
                 return false;
             }
             
@@ -1018,15 +1139,16 @@ function cf7_course_js() {
                 var isSuccess = (data.success === true || data.success === "true" || data.success === 1);
                 if (isSuccess) {
                     window.cf7_close_course_modal();
-                    alert(data.data && data.data.message ? data.data.message : "Thành công!");
-                            setTimeout(function() { location.reload(); }, 300);
-                        } else {
-                    alert(data.data && data.data.message ? data.data.message : "Có lỗi xảy ra.");
+                    cf7_toast(data.data && data.data.message ? data.data.message : "Thành công!");
+                    // Delay reload to let user see toast
+                    setTimeout(function() { location.reload(); }, 6000);
+                } else {
+                    cf7_toast(data.data && data.data.message ? data.data.message : "Có lỗi xảy ra.", "error");
                     if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
                         }
                     })
             .catch(function(error) {
-                alert("Lỗi: " + error.message);
+                cf7_toast("Lỗi: " + error.message, "error");
                 if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalBtnText; }
             });
             return false;
