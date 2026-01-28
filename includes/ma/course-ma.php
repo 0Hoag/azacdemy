@@ -452,29 +452,38 @@ function cf7_display_course_table_row($atts) {
     
     $base_url = remove_query_arg(['cf7_course_page']);
 
-    // Lấy TẤT CẢ học viên để đếm và kiểm tra có học viên không
-    $all_leads = $wpdb->get_results("SELECT data FROM {$table_leads}", ARRAY_A);
-    
-    // Đếm số học viên cho mỗi khóa học và kiểm tra có học viên không
-    $course_student_counts = [];
-    $course_has_students = [];
-    foreach ($all_leads as $lead_row) {
-        $lead_data = json_decode($lead_row['data'], true);
-        if ($lead_data) {
-            $lead_course_key = $lead_data['course']['key'] ?? '';
-            $lead_status = $lead_data['payment']['status'] ?? '';
-            
-            if (!empty($lead_course_key)) {
-                $course_has_students[$lead_course_key] = true;
+    // ✅ OPTIMIZATION: Cache student counts for 5 minutes
+    $course_student_counts = get_transient('cf7_course_student_counts');
+    $course_has_students = get_transient('cf7_course_has_students');
+
+    if (false === $course_student_counts || false === $course_has_students) {
+        // Lấy TẤT CẢ học viên để đếm và kiểm tra có học viên không
+        $all_leads = $wpdb->get_results("SELECT data FROM {$table_leads}", ARRAY_A);
+        
+        $course_student_counts = [];
+        $course_has_students = [];
+
+        foreach ($all_leads as $lead_row) {
+            $lead_data = json_decode($lead_row['data'], true);
+            if ($lead_data) {
+                $lead_course_key = $lead_data['course']['key'] ?? '';
+                $lead_status = $lead_data['payment']['status'] ?? '';
                 
-                if (in_array($lead_status, ['deposit', 'paid'])) {
-                    if (!isset($course_student_counts[$lead_course_key])) {
-                        $course_student_counts[$lead_course_key] = 0;
+                if (!empty($lead_course_key)) {
+                    $course_has_students[$lead_course_key] = true;
+                    
+                    if (in_array($lead_status, ['deposit', 'paid'])) {
+                        if (!isset($course_student_counts[$lead_course_key])) {
+                            $course_student_counts[$lead_course_key] = 0;
+                        }
+                        $course_student_counts[$lead_course_key]++;
                     }
-                    $course_student_counts[$lead_course_key]++;
                 }
             }
         }
+        
+        set_transient('cf7_course_student_counts', $course_student_counts, 300);
+        set_transient('cf7_course_has_students', $course_has_students, 300);
     }
 
     $output = '';
@@ -875,7 +884,51 @@ function cf7_course_js() {
         row.style.alignItems = "flex-end"; // Căn đáy để khớp với input
         row.style.flexWrap = "nowrap"; 
         
+        row.setAttribute("draggable", "true");
+        row.style.cursor = "move";
+        
+        // Drag Events
+        row.addEventListener("dragstart", function(e) {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", id);
+            row.classList.add("dragging");
+            // Highlight drop targets
+            document.querySelectorAll(".schedule-row").forEach(r => r.style.border = "1px dashed #ccc");
+        });
+        
+        row.addEventListener("dragend", function(e) {
+            row.classList.remove("dragging");
+            document.querySelectorAll(".schedule-row").forEach(r => r.style.border = "none");
+        });
+        
+        row.addEventListener("dragover", function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+            row.style.borderTop = "2px solid #0064E0";
+        });
+        
+        row.addEventListener("dragleave", function(e) {
+            row.style.borderTop = "none";
+            row.style.border = "1px dashed #ccc";
+        });
+        
+        row.addEventListener("drop", function(e) {
+            e.preventDefault();
+            row.style.borderTop = "none";
+            
+            var draggedId = e.dataTransfer.getData("text/plain");
+            var draggedRow = document.getElementById(draggedId);
+            
+            if (draggedRow && draggedRow !== row) {
+                // Insert dragged row before this row
+                list.insertBefore(draggedRow, row);
+            }
+        });
+        
         row.innerHTML = `
+            <div style="width: 30px; height: 38px; display:flex; align-items:center; justify-content:center; cursor:grab; margin-right: 5px; margin-bottom: 15px;" title="Kéo để sắp xếp">
+                <span style="font-size:18px; color:#bdc3c7;">☰</span>
+            </div>
             <div style="width: 80px;">
                 <label style="display:block; font-size:12px; margin-bottom:4px; color:#7f8c8d;">Khóa</label>
                 <input type="text" class="schedule-label" value="${label}" placeholder="K..." style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px; height: 38px; box-sizing: border-box;">
