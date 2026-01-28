@@ -91,9 +91,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         data.data.schedules.forEach(function (sch, index) {
                             var isChecked = index === 0 ? 'checked' : '';
+                            var scheduleText = sch.label + ' (' + sch.start_fmt + ')';
+
                             html += `
                         <label class="schedule-radio-item" style="display:flex; align-items:center; margin-bottom:10px; cursor:pointer; padding:12px 14px; border:1px solid #e0e0e0; border-radius:8px; background:#fff; transition:all 0.2s ease;">
-                            <input type="radio" name="schedule_option" value="${sch.index}" ${isChecked} style="margin:0 12px 0 0; width:20px; height:20px; accent-color:#0d6efd; cursor:pointer; flex-shrink:0;" onchange="updateHiddenInput(this)">
+                            <input type="radio" name="schedule_option" value="${sch.index}" data-schedule-text="${scheduleText}" ${isChecked} style="margin:0 12px 0 0; width:20px; height:20px; accent-color:#0d6efd; cursor:pointer; flex-shrink:0;" onchange="updateHiddenInput(this)">
                             <div style="flex:1; display:flex; align-items:center; flex-wrap:wrap; gap:6px; line-height:1.5;">
                                 <span style="font-weight:700; color:#2c3e50; font-size:15px;">${sch.label}</span> 
                                 <span style="font-size:14px; color:#666;">(Khai giảng: ${sch.start_fmt})</span>
@@ -103,7 +105,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         html += '</div>';
 
                         // Set hidden input value to the first schedule index by default
-                        updateHiddenInput({ value: data.data.schedules[0].index });
+                        var firstSch = data.data.schedules[0];
+                        updateHiddenInput({
+                            value: firstSch.index,
+                            dataset: { scheduleText: firstSch.label + ' (' + firstSch.start_fmt + ')' }
+                        });
 
                     }
                     // ✅ CASE 3: Fallback (Chỉ có ngày start_date)
@@ -123,6 +129,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (form) {
                             var hiddenInput = form.querySelector('input[name="cf7-course-schedule-index"]');
                             if (hiddenInput) hiddenInput.value = '';
+
+                            // Set course-time text directly for single schedule
+                            var dateInput = form.querySelector('input[name="course-time"]');
+                            if (dateInput) dateInput.value = data.data.start_date;
                         }
 
                     } else {
@@ -146,6 +156,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Helper function to update hidden input
     window.updateHiddenInput = function (radioOrObj) {
         if (!form) return;
+
+        // 1. Update Schedule Index (để code backend xử lý logic)
         var hiddenInput = form.querySelector('input[name="cf7-course-schedule-index"]');
         if (!hiddenInput) {
             hiddenInput = document.createElement('input');
@@ -154,6 +166,12 @@ document.addEventListener('DOMContentLoaded', function () {
             form.appendChild(hiddenInput);
         }
         hiddenInput.value = radioOrObj.value;
+
+        // 2. Update Readable Text (để gửi mail) -> target field [text course-time]
+        var textInput = form.querySelector('input[name="course-time"]');
+        if (textInput && radioOrObj.dataset && radioOrObj.dataset.scheduleText) {
+            textInput.value = radioOrObj.dataset.scheduleText;
+        }
     };
 
 });

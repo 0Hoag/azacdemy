@@ -58,7 +58,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (hasSchedules) {
                         // Set giá trị mặc định cho hidden input là schedule đầu tiên
-                        scheduleInput.value = data.data.schedules[0].index;
+                        var firstSch = data.data.schedules[0];
+                        scheduleInput.value = firstSch.index;
+
+                        // Set text giá trị mặc định cho input course-time nếu có
+                        var courseTimeInput = document.querySelector('input[name="course-time"]');
+                        if (courseTimeInput) {
+                            courseTimeInput.value = firstSch.label + ' (' + firstSch.start_fmt + ')';
+                        }
 
                         // Tạo list chọn lịch (Radio Button style) - Đồng bộ với Landing Page
                         html += '<div style="background:#fff; padding:15px; border-radius:10px; border:1px solid #eee; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">';
@@ -67,9 +74,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         data.data.schedules.forEach(function (sch, index) {
                             var isChecked = index === 0 ? 'checked' : '';
+                            var scheduleText = sch.label + ' (' + sch.start_fmt + ')';
+
                             html += `
                         <label style="display:flex; align-items:center; cursor:pointer; padding:12px 14px; border:1px solid #e0e0e0; border-radius:8px; background:#fff; transition:all 0.2s ease; position:relative;">
-                            <input type="radio" name="cf7_std_schedule_opt" value="${sch.index}" ${isChecked} style="margin:0 12px 0 0; width:20px; height:20px; accent-color:#0d6efd; cursor:pointer; flex-shrink:0;">
+                            <input type="radio" name="cf7_std_schedule_opt" value="${sch.index}" data-schedule-text="${scheduleText}" ${isChecked} style="margin:0 12px 0 0; width:20px; height:20px; accent-color:#0d6efd; cursor:pointer; flex-shrink:0;">
                             <div style="flex:1; display:flex; align-items:center; flex-wrap:wrap; gap:6px; line-height:1.5;">
                                 <span style="font-weight:700; color:#2c3e50; font-size:15px;">${sch.label}</span> 
                                 <span style="font-size:14px; color:#666;">(Khai giảng: ${sch.start_fmt})</span>
@@ -81,6 +90,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     } else if (data.data.start_date) {
                         // Trường hợp cũ (1 lịch) -> Hiển thị text như trước nhưng đẹp hơn
                         html = '<div style="padding:10px; background:#f8f9fa; border-radius:6px; color:#333; font-size:14px;">📅 <strong>Khai giảng:</strong> ' + data.data.start_date + '</div>';
+
+                        // Set text cho course-time
+                        var courseTimeInput = document.querySelector('input[name="course-time"]');
+                        if (courseTimeInput) {
+                            courseTimeInput.value = data.data.start_date;
+                        }
                     } else {
                         html = '<div style="font-style:italic; font-size:13px; color:#777;">(Chưa có lịch khai giảng)</div>';
                     }
@@ -94,6 +109,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         radios.forEach(function (radio) {
                             radio.addEventListener('change', function () {
                                 scheduleInput.value = this.value;
+
+                                // Update course-time text
+                                var courseTimeInput = document.querySelector('input[name="course-time"]');
+                                if (courseTimeInput && this.dataset.scheduleText) {
+                                    courseTimeInput.value = this.dataset.scheduleText;
+                                }
                             });
                         });
                     }

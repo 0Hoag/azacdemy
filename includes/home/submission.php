@@ -1,6 +1,6 @@
 <?php
 
-// add_action('wpcf7_submit', 'cf7_send_to_telegram');
+add_action('wpcf7_submit', 'cf7_send_to_telegram');
 
 // ✅ FIX: Populate select field course-name từ database động
 add_filter('wpcf7_form_tag', 'cf7_populate_course_select', 10, 2);
@@ -117,20 +117,6 @@ function cf7_validate_course_select_from_db($result, $tag) {
     $result->invalidate($tag, __('Khóa học không hợp lệ.', 'cf7-to-telegram'));
     return $result;
 }
-
-// Bỏ qua gửi email mặc định của CF7 cho form đăng ký (tránh lỗi mail và báo đỏ)
-// // Bỏ qua gửi email mặc định của CF7 cho form đăng ký (tránh lỗi mail và báo đỏ)
-// add_filter('wpcf7_skip_mail', function($skip, $contact_form) {
-//     $submission = class_exists('WPCF7_Submission') ? WPCF7_Submission::get_instance() : null;
-//     $data = $submission ? $submission->get_posted_data() : [];
-    
-//     // Chỉ bỏ qua mail với form có field course-name (form đăng ký tư vấn)
-//     if (isset($data['course-name'])) {
-//         return true;
-//     }
-    
-//     return $skip;
-// }, 10, 2);
 
 // AJAX endpoint để lấy HTML featured courses
 add_action('wp_ajax_cf7_get_featured_courses_html', 'cf7_get_featured_courses_html_ajax');
