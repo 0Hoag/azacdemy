@@ -1274,24 +1274,43 @@ function cf7_student_js() {
             if (data.success && data.data && data.data.schedules) {
                 // Determine today (YYYY-MM-DD)
                 var today = new Date().toISOString().split("T")[0];
+                var firstUpcomingIndex = -1;
+                var foundSelected = false;
 
-                data.data.schedules.forEach(sch => {
+                data.data.schedules.forEach((sch, i) => {
                     var label = sch.label ? sch.label : ("K" + (parseInt(sch.index) + 1));
                     var start = sch.start_fmt || sch.start;
                     var isExpired = (sch.start < today);
-                    var style = isExpired ? "color:#95a5a6;" : "font-weight:bold;";
-                    var expiredText = isExpired ? " (Đã qua)" : "";
                     
                     var option = document.createElement("option");
                     option.value = sch.index;
-                    option.innerHTML = label + " - " + start + expiredText;
-                    if (isExpired) option.style.color = "#999";
+                    option.innerHTML = label + " - " + start + (isExpired ? " (Đã qua)" : "");
+                    
+                    if (isExpired) {
+                        option.style.color = "#95a5a6";
+                        // ✅ Disable expired schedules UNLESS it matches the current student schedule
+                        if (parseInt(sch.index) !== parseInt(selectedIndex)) {
+                            option.disabled = true;
+                        }
+                    } else {
+                        option.style.fontWeight = "bold";
+                        // Track the first upcoming schedule
+                        if (firstUpcomingIndex === -1) firstUpcomingIndex = sch.index;
+                    }
 
                     if (parseInt(sch.index) === parseInt(selectedIndex)) {
                         option.selected = true;
+                        foundSelected = true;
                     }
                     scheduleSelect.appendChild(option);
                 });
+
+                // ✅ Auto-select logic if no valid selection exists
+                if (!foundSelected && selectedIndex === -1) {
+                    if (firstUpcomingIndex !== -1) {
+                        scheduleSelect.value = firstUpcomingIndex;
+                    }
+                }
             }
         })
         .catch(err => {
@@ -1340,6 +1359,14 @@ function cf7_student_js() {
             
             if (!name || !phone || !courseKey) {
                 alert("Vui lòng điền đầy đủ thông tin bắt buộc.");
+                return false;
+            }
+            
+            var scheduleIndex = document.getElementById("cf7-student-schedule-index").value;
+
+            // ✅ Validate Schedule Selection
+            if (scheduleIndex == -1 || scheduleIndex === "") {
+                alert("Vui lòng chọn Lịch khai giảng (K) hợp lệ.");
                 return false;
             }
             
