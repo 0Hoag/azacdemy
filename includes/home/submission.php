@@ -9,6 +9,8 @@ add_filter('wpcf7_form_tag', 'cf7_populate_course_select', 10, 2);
 add_filter('wpcf7_mail_tag_replacement', 'cf7_replace_course_name_in_email', 10, 4);
 function cf7_replace_course_name_in_email($replaced, $submitted, $html, $mail_tag) {
     if ($mail_tag->field_name() === 'course-name') {
+        return "HOOK_IS_WORKING_BUT_LOGIC_FAILED (Input: " . print_r($submitted, true) . ")";
+
         // Lấy value (course_key)
         $course_key = $submitted;
         
