@@ -4,6 +4,45 @@ add_action('wpcf7_submit', 'cf7_send_to_telegram');
 
 // ✅ FIX: Populate select field course-name từ database động
 add_filter('wpcf7_form_tag', 'cf7_populate_course_select', 10, 2);
+
+// ✅ FIX: Hiển thị tên khóa học thay vì course_key trong Email
+add_filter('wpcf7_mail_tag_replacement', 'cf7_replace_course_name_in_email', 10, 4);
+function cf7_replace_course_name_in_email($replaced, $submitted, $html, $mail_tag) {
+    if ($mail_tag->field_name() === 'course-name') {
+        // Lấy value (course_key)
+        $course_key = $submitted;
+        
+        // Nếu là array (select multiple)
+        if (is_array($course_key)) {
+            $course_key = reset($course_key);
+        }
+
+        // Clean key
+        $course_key = trim((string)$course_key);
+
+        if (empty($course_key)) return $replaced;
+
+        // Truy vấn DB lấy tên
+        global $wpdb;
+        $table_courses = $wpdb->prefix . 'cf7_courses';
+        
+        $row = $wpdb->get_row($wpdb->prepare(
+            "SELECT data FROM $table_courses WHERE course_key = %s", 
+            $course_key
+        ));
+
+        if ($row && isset($row->data)) {
+            $data = json_decode($row->data, true);
+            if (!empty($data['course_name'])) {
+                return $data['course_name'];
+            }
+        }
+        
+        // Debug output if not found (TEMPORARY)
+        // return $replaced . " (Debug: Key '$course_key' not found)";
+    }
+    return $replaced;
+}
 function cf7_populate_course_select($tag, $unused) {
     $original_is_array = is_array($tag);
     // CF7 có thể truyền $tag dạng object hoặc array (tùy version/hook)
