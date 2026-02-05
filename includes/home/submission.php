@@ -5,46 +5,44 @@ add_action('wpcf7_submit', 'cf7_send_to_telegram');
 // ✅ FIX: Populate select field course-name từ database động
 add_filter('wpcf7_form_tag', 'cf7_populate_course_select', 10, 2);
 
-// ✅ FIX: Hiển thị tên khóa học thay vì course_key trong Email
-add_filter('wpcf7_mail_tag_replacement', 'cf7_replace_course_name_in_email', 10, 4);
-function cf7_replace_course_name_in_email($replaced, $submitted, $html, $mail_tag) {
-    if ($mail_tag->field_name() === 'course-name') {
-        return "HOOK_IS_WORKING_BUT_LOGIC_FAILED (Input: " . print_r($submitted, true) . ")";
+// ✅ FIX: Tạo custom mail tag [course-display-name] để hiện tên đẹp trong mail
+add_filter('wpcf7_special_mail_tags', 'cf7_special_mail_tag_course_display_name', 10, 3);
 
-        // Lấy value (course_key)
-        $course_key = $submitted;
-        
-        // Nếu là array (select multiple)
-        if (is_array($course_key)) {
-            $course_key = reset($course_key);
-        }
-
-        // Clean key
-        $course_key = trim((string)$course_key);
-
-        if (empty($course_key)) return $replaced;
-
-        // Truy vấn DB lấy tên
-        global $wpdb;
-        $table_courses = $wpdb->prefix . 'cf7_courses';
-        
-        $row = $wpdb->get_row($wpdb->prepare(
-            "SELECT data FROM $table_courses WHERE course_key = %s", 
-            $course_key
-        ));
-
-        if ($row && isset($row->data)) {
-            $data = json_decode($row->data, true);
-            if (!empty($data['course_name'])) {
-                return $data['course_name'];
-            }
-        }
-        
-        
-        // Debug output if not found (TEMPORARY)
-        return $replaced . " (Debug: Key='{$course_key}' Len=" . strlen($course_key) . " - Not Found)";
+function cf7_special_mail_tag_course_display_name($output, $name, $html) {
+    if ($name !== 'course-display-name') {
+        return $output;
     }
-    return $replaced;
+
+    $submission = WPCF7_Submission::get_instance();
+    if (!$submission) return $output;
+
+    $posted_data = $submission->get_posted_data();
+    $course_key = isset($posted_data['course-name']) ? $posted_data['course-name'] : '';
+
+    if (is_array($course_key)) {
+        $course_key = reset($course_key);
+    }
+    
+    $course_key = trim((string)$course_key);
+
+    if (empty($course_key)) return "n/a";
+
+    global $wpdb;
+    $table_courses = $wpdb->prefix . 'cf7_courses';
+    
+    $row = $wpdb->get_row($wpdb->prepare(
+        "SELECT data FROM $table_courses WHERE course_key = %s", 
+        $course_key
+    ));
+
+    if ($row && isset($row->data)) {
+        $data = json_decode($row->data, true);
+        if (!empty($data['course_name'])) {
+            return $data['course_name'];
+        }
+    }
+
+    return $course_key; // Fallback to key if not found
 }
 function cf7_populate_course_select($tag, $unused) {
     $original_is_array = is_array($tag);
