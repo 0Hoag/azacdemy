@@ -38,8 +38,9 @@ function cf7_replace_course_name_in_email($replaced, $submitted, $html, $mail_ta
             }
         }
         
+        
         // Debug output if not found (TEMPORARY)
-        // return $replaced . " (Debug: Key '$course_key' not found)";
+        return $replaced . " (Debug: Key='{$course_key}' Len=" . strlen($course_key) . " - Not Found)";
     }
     return $replaced;
 }
