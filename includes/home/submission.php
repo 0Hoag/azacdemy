@@ -736,7 +736,13 @@ function cf7_send_to_telegram() {
 
     // ✅ Telegram notify
     $course_time_info = '';
-    if (!empty($course_info['start_date'])) {
+    
+    // Ưu tiên lấy text từ form gửi lên (chính xác những gì khách chọn)
+    if (!empty($data['course-time'])) {
+        $course_time_info = "\n📅 Lịch học: " . $data['course-time'];
+    } 
+    // Fallback: Lấy từ DB nếu form không gửi lên
+    else if (!empty($course_info['start_date'])) {
         $start_formatted = date('d/m/Y', strtotime($course_info['start_date']));
         $course_time_info = "\n📅 Khai giảng: {$start_formatted}";
     }
