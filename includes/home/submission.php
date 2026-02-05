@@ -38,7 +38,10 @@ function cf7_special_mail_tag_course_display_name($output, $name, $html) {
     if ($row && isset($row->data)) {
         $data = json_decode($row->data, true);
         if (!empty($data['course_name'])) {
-            return $data['course_name'];
+            $name = $data['course_name'];
+            // Remove "Khóa học" prefix (case insensitive)
+            $name = preg_replace('/^Khóa học\s+/iu', '', $name);
+            return $name;
         }
     }
 
